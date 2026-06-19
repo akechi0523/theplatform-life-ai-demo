@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   ThePlatform.life AI — mindful, soft design system
+   Tailwind v4 CSS-first config. Triad accent colors per the brief:
+   Heart = yellow, Head = green, Gut = red.
+─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+
+  /* Base surface — warm neutrals */
+  --color-canvas: #faf8f5;
+  --color-surface: #ffffff;
+  --color-ink: #2b2724;
+  --color-muted: #6f6962;
+  --color-line: #ece7e0;
+  --color-brand: #7c6cf0;
+  --color-brand-soft: #efecfe;
+
+  /* Triad palettes */
+  --color-heart: #ca8a04; /* yellow-600 */
+  --color-heart-soft: #fef9c3; /* yellow-100 */
+  --color-heart-line: #fde68a; /* yellow-300 */
+
+  --color-head: #16a34a; /* green-600 */
+  --color-head-soft: #dcfce7; /* green-100 */
+  --color-head-line: #86efac; /* green-300 */
+
+  --color-gut: #dc2626; /* red-600 */
+  --color-gut-soft: #fee2e2; /* red-100 */
+  --color-gut-line: #fca5a5; /* red-300 */
+
+  --radius-card: 1rem;
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Subtle entrance animations used across the results view */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+/* Glowing ring for the user's self-identified type card */
+.ring-self {
+  box-shadow:
+    0 0 0 2px var(--color-brand),
+    0 0 22px 2px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}

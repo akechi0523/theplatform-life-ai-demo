@@ -1,0 +1,12 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  // tRPC + superjson run fine on the Node runtime; nothing exotic needed here.
+  experimental: {
+    // Keeps server-only packages (postgres, stripe) out of the client bundle.
+    serverComponentsExternalPackages: ["postgres", "stripe"],
+  },
+};
+
+export default nextConfig;

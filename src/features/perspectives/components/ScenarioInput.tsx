@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Magicpen } from "iconsax-reactjs";
 import { trpc } from "@/lib/trpc/client";
-import { SAMPLE_SCENARIO } from "../data/mockData";
 import { DEFAULT_MODEL_ID, MODEL_OPTIONS, type ModelId } from "../data/models";
 
 const EXAMPLES = [
-  SAMPLE_SCENARIO,
-  "Deciding whether to leave a stable job to start my own business",
-  "Confronting a close friend who keeps cancelling plans",
-  "Moving across the country for a partner's career",
+  "Buying a house for the first time with a fiancé",
+  "Starting a new business with a close friend",
+  "Navigating a difficult conversation with a parent",
+  "Deciding whether to accept a major job promotion",
+  "Moving to a new city alone for the first time",
+  "Ending a long-term relationship",
 ];
 
 interface Props {
@@ -53,10 +54,10 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "" }: Props)
 
   return (
     <div className="mx-auto w-full max-w-2xl text-center animate-fade-up">
-      <h1 className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
-        ThePlatform.life AI
+      <h1 className="font-serif text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">
+        ThePlatform<span className="text-[var(--color-ash)]">.life</span> AI
       </h1>
-      <p className="mx-auto mt-4 max-w-xl text-base text-[var(--color-muted)]">
+      <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--color-muted)]">
         Describe a real-life scenario or decision. Our AI ThePlatform.life will reveal how each of
         the 9 perspectives within the 360° of Perspectives would perceive, feel, and respond —
         including their stress and security responses.
@@ -67,9 +68,9 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "" }: Props)
           e.preventDefault();
           submit(value);
         }}
-        className="mt-8"
+        className="mt-10"
       >
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-2 shadow-sm focus-within:border-[var(--color-brand)]">
+        <div className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-3 transition focus-within:border-[var(--color-graphite)]">
           <textarea
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -108,7 +109,7 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "" }: Props)
             <button
               type="submit"
               disabled={disabled || value.trim().length < 5 || noModels}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
             >
               <Magicpen size={16} color="#ffffff" variant="Bold" />
               Analyze Scenario
@@ -118,17 +119,14 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "" }: Props)
         </div>
       </form>
 
-      <div className="mt-6 flex flex-wrap justify-center gap-2">
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
         {EXAMPLES.map((ex) => (
           <button
             key={ex}
             type="button"
             disabled={disabled}
-            onClick={() => {
-              setValue(ex);
-              submit(ex);
-            }}
-            className="rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs text-[var(--color-muted)] transition hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] disabled:opacity-50"
+            onClick={() => setValue(ex)}
+            className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)] transition hover:border-[var(--color-graphite)] hover:text-[var(--color-ink)] disabled:opacity-50"
           >
             {ex}
           </button>

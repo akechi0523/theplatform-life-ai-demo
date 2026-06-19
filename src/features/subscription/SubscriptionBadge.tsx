@@ -12,8 +12,8 @@ export function SubscriptionBadge({ status, tokensRemaining, renewalDate }: Prop
   if (status === "premium") {
     return (
       <div className="flex items-center gap-3 text-sm">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-soft)] px-3 py-1 font-semibold text-[var(--color-brand)]">
-          <Crown1 size={15} color="#7c6cf0" variant="Bold" /> Premium
+        <span className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--color-obsidian)] px-3 py-1 font-semibold text-white">
+          <Crown1 size={15} color="#ffffff" variant="Bold" /> Premium
         </span>
         <span className="hidden text-[var(--color-muted)] sm:inline">Unlimited analyses</span>
         {renewalDate && (
@@ -27,7 +27,7 @@ export function SubscriptionBadge({ status, tokensRemaining, renewalDate }: Prop
 
   return (
     <div className="flex items-center gap-3 text-sm">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] px-3 py-1 font-medium text-[var(--color-muted)]">
+      <span className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-graphite)] px-3 py-1 font-medium text-[var(--color-graphite)]">
         Free
       </span>
       <span className="inline-flex items-center gap-1 text-[var(--color-muted)]">

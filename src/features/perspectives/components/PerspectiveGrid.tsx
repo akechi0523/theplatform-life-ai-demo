@@ -22,13 +22,15 @@ export function PerspectiveGrid({ types, selfType, onSelect }: Props) {
       {TRIADS.map((triad) => (
         <section
           key={triad.key}
-          className={`rounded-2xl border p-3 ${triad.classes.column}`}
+          className={`rounded-[var(--radius-card)] p-4 ${triad.classes.column}`}
         >
-          <header className="mb-3 px-1">
-            <h2 className={`font-serif text-lg font-semibold ${triad.classes.header}`}>
+          <header className="mb-4 px-2">
+            <h2 className={`font-serif text-xl font-semibold ${triad.classes.header}`}>
               {triad.label}
             </h2>
-            <p className="text-xs text-[var(--color-muted)]">{triad.description}</p>
+            <p className="mt-0.5 text-xs font-medium text-[var(--color-muted)]">
+              {triad.description}
+            </p>
           </header>
 
           <div className="space-y-3">

@@ -6,13 +6,21 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { SubscriptionBadge } from "./SubscriptionBadge";
 
 interface Props {
-  status: "free" | "premium";
-  tokensRemaining: number;
+  status?: "free" | "premium";
+  tokensRemaining?: number;
   renewalDate?: Date | null;
+  /** True while the profile query is still loading; renders a skeleton for the dynamic bits. */
+  loading?: boolean;
   onUpgradeClick: () => void;
 }
 
-export function DashboardHeader({ status, tokensRemaining, renewalDate, onUpgradeClick }: Props) {
+export function DashboardHeader({
+  status,
+  tokensRemaining,
+  renewalDate,
+  loading,
+  onUpgradeClick,
+}: Props) {
   const router = useRouter();
 
   async function signOut() {
@@ -27,16 +35,20 @@ export function DashboardHeader({ status, tokensRemaining, renewalDate, onUpgrad
         <span className="font-serif text-lg font-semibold">ThePlatform.life AI</span>
 
         <div className="flex items-center gap-4">
-          <SubscriptionBadge
-            status={status}
-            tokensRemaining={tokensRemaining}
-            renewalDate={renewalDate}
-          />
+          {loading || !status ? (
+            <span className="h-7 w-32 animate-pulse rounded-xl bg-[var(--color-line)]" />
+          ) : (
+            <SubscriptionBadge
+              status={status}
+              tokensRemaining={tokensRemaining ?? 0}
+              renewalDate={renewalDate}
+            />
+          )}
 
           {status === "free" && (
             <button
               onClick={onUpgradeClick}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold"
             >
               <Crown1 size={15} color="#ffffff" variant="Bold" /> Upgrade to Premium
             </button>
@@ -45,7 +57,7 @@ export function DashboardHeader({ status, tokensRemaining, renewalDate, onUpgrad
           <button
             onClick={signOut}
             aria-label="Sign out"
-            className="rounded-lg p-2 text-[var(--color-muted)] transition hover:bg-[var(--color-line)]"
+            className="rounded-xl p-2 text-[var(--color-muted)] transition hover:bg-[var(--color-surface-muted)]"
           >
             <LogoutCurve size={18} color="#6f6962" variant="Linear" />
           </button>

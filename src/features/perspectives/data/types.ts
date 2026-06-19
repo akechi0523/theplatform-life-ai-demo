@@ -72,11 +72,11 @@ export const TRIADS: TriadMeta[] = [
     description: "Emotion-driven · Types 2, 3, 4",
     typeNumbers: [2, 3, 4],
     classes: {
-      column: "bg-[var(--color-heart-soft)]/40 border-[var(--color-heart-line)]",
+      column: "bg-[var(--color-surface-muted)]",
       header: "text-[var(--color-heart)]",
       badge: "bg-[var(--color-heart-soft)] text-[var(--color-heart)]",
-      cardAccent: "border-l-[var(--color-heart)]",
-      chip: "bg-[var(--color-heart-soft)] text-[var(--color-heart)] border border-[var(--color-heart-line)]",
+      cardAccent: "group-hover:bg-[var(--color-heart)]",
+      chip: "bg-[var(--color-heart-soft)] text-[var(--color-heart)]",
     },
   },
   {
@@ -85,11 +85,11 @@ export const TRIADS: TriadMeta[] = [
     description: "Fear-driven · Types 5, 6, 7",
     typeNumbers: [5, 6, 7],
     classes: {
-      column: "bg-[var(--color-head-soft)]/40 border-[var(--color-head-line)]",
+      column: "bg-[var(--color-surface-muted)]",
       header: "text-[var(--color-head)]",
       badge: "bg-[var(--color-head-soft)] text-[var(--color-head)]",
-      cardAccent: "border-l-[var(--color-head)]",
-      chip: "bg-[var(--color-head-soft)] text-[var(--color-head)] border border-[var(--color-head-line)]",
+      cardAccent: "group-hover:bg-[var(--color-head)]",
+      chip: "bg-[var(--color-head-soft)] text-[var(--color-head)]",
     },
   },
   {
@@ -98,11 +98,11 @@ export const TRIADS: TriadMeta[] = [
     description: "Instinct-driven · Types 8, 9, 1",
     typeNumbers: [8, 9, 1],
     classes: {
-      column: "bg-[var(--color-gut-soft)]/40 border-[var(--color-gut-line)]",
+      column: "bg-[var(--color-surface-muted)]",
       header: "text-[var(--color-gut)]",
       badge: "bg-[var(--color-gut-soft)] text-[var(--color-gut)]",
-      cardAccent: "border-l-[var(--color-gut)]",
-      chip: "bg-[var(--color-gut-soft)] text-[var(--color-gut)] border border-[var(--color-gut-line)]",
+      cardAccent: "group-hover:bg-[var(--color-gut)]",
+      chip: "bg-[var(--color-gut-soft)] text-[var(--color-gut)]",
     },
   },
 ];

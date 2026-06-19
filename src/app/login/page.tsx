@@ -49,22 +49,24 @@ function LoginForm() {
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">ThePlatform.life AI</h1>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">
+          <h1 className="font-serif text-4xl font-bold tracking-tight">
+            ThePlatform<span className="text-[var(--color-ash)]">.life</span> AI
+          </h1>
+          <p className="mt-3 text-sm text-[var(--color-muted)]">
             Sign in to explore the 360° of Perspectives.
           </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-6 shadow-sm"
+          className="rounded-[var(--radius-card)] bg-[var(--color-surface)] p-7"
         >
           <div className="mb-4">
             <label className="mb-1.5 block text-sm font-medium" htmlFor="email">
               Email
             </label>
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] px-3 focus-within:border-[var(--color-brand)]">
-              <Sms size={18} color="#6f6962" variant="Linear" />
+            <div className="flex items-center gap-2 rounded-[14px] border border-[var(--color-line)] px-3 transition focus-within:border-[var(--color-graphite)]">
+              <Sms size={18} color="#71717a" variant="Linear" />
               <input
                 id="email"
                 type="email"
@@ -82,8 +84,8 @@ function LoginForm() {
             <label className="mb-1.5 block text-sm font-medium" htmlFor="password">
               Password
             </label>
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] px-3 focus-within:border-[var(--color-brand)]">
-              <Lock1 size={18} color="#6f6962" variant="Linear" />
+            <div className="flex items-center gap-2 rounded-[14px] border border-[var(--color-line)] px-3 transition focus-within:border-[var(--color-graphite)]">
+              <Lock1 size={18} color="#71717a" variant="Linear" />
               <input
                 id="password"
                 type="password"
@@ -101,7 +103,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[var(--color-brand)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+            className="btn-primary w-full py-3 text-sm font-semibold"
           >
             {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
           </button>
@@ -112,7 +114,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-            className="font-medium text-[var(--color-brand)] hover:underline"
+            className="font-semibold text-[var(--color-ink)] underline-offset-2 hover:underline"
           >
             {mode === "signup" ? "Sign in" : "Create one"}
           </button>

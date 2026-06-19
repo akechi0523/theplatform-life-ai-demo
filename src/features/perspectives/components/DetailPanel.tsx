@@ -21,35 +21,27 @@ export function DetailPanel({ type, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [type, onClose]);
 
-  const open = Boolean(type);
   const triad = type ? getTriadForType(type.typeNumber) : null;
+
+  // Don't render the panel (or its off-canvas backdrop) unless a type is selected.
+  // Keeping it mounted and translated off-screen caused horizontal overflow.
+  if (!type || !triad) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={cn(
-          "fixed inset-0 z-40 bg-black/30 transition-opacity",
-          open ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
+        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
       />
 
       {/* Panel */}
-      <aside
-        className={cn(
-          "fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col bg-[var(--color-surface)] shadow-2xl transition-transform duration-300",
-          open ? "translate-x-0" : "translate-x-full",
-        )}
-        aria-hidden={!open}
-      >
-        {type && triad && (
-          <>
-            <header className="flex items-start justify-between border-b border-[var(--color-line)] p-6">
+      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col rounded-l-[var(--radius-card)] bg-[var(--color-surface)] shadow-2xl">
+        <header className="flex items-start justify-between border-b border-[var(--color-line)] p-6">
               <div className="flex items-center gap-3">
                 <span
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold",
+                    "flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-bold",
                     triad.classes.badge,
                   )}
                 >
@@ -92,8 +84,6 @@ export function DetailPanel({ type, onClose }: Props) {
                 body={type.securityResponse}
               />
             </div>
-          </>
-        )}
       </aside>
     </>
   );
@@ -120,7 +110,7 @@ function Section({
       </div>
       {pathLabel && (
         <span
-          className={cn("mb-2 inline-block rounded-full px-2.5 py-1 text-xs font-medium", pathClass)}
+          className={cn("mb-2 inline-block rounded-xl px-2.5 py-1 text-xs font-medium", pathClass)}
         >
           {pathLabel}
         </span>

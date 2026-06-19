@@ -39,7 +39,7 @@ export function UpgradeModal({ open, onClose, outOfTokens }: Props) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      <div className="relative w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-6 shadow-2xl animate-fade-up">
+      <div className="relative w-full max-w-md rounded-[var(--radius-card)] bg-[var(--color-surface)] p-7 shadow-2xl animate-fade-up">
         <button
           onClick={onClose}
           aria-label="Close"
@@ -49,7 +49,7 @@ export function UpgradeModal({ open, onClose, outOfTokens }: Props) {
         </button>
 
         <div className="mb-1 flex items-center gap-2">
-          <Crown1 size={22} color="#7c6cf0" variant="Bold" />
+          <Crown1 size={22} color="#18181b" variant="Bold" />
           <h2 className="font-serif text-2xl font-semibold">ThePlatform.life Premium</h2>
         </div>
         <p className="text-sm text-[var(--color-muted)]">
@@ -64,14 +64,14 @@ export function UpgradeModal({ open, onClose, outOfTokens }: Props) {
               key={p.id}
               onClick={() => setPlan(p.id)}
               className={cn(
-                "relative rounded-xl border p-4 text-left transition",
+                "relative rounded-2xl border p-4 text-left transition",
                 plan === p.id
-                  ? "border-[var(--color-brand)] bg-[var(--color-brand-soft)]"
-                  : "border-[var(--color-line)] hover:border-[var(--color-brand)]",
+                  ? "border-[var(--color-obsidian)] bg-[var(--color-surface-muted)]"
+                  : "border-[var(--color-line)] hover:border-[var(--color-graphite)]",
               )}
             >
               {p.badge && (
-                <span className="absolute right-2 top-2 rounded-full bg-[var(--color-head-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-head)]">
+                <span className="absolute right-2 top-2 rounded-xl bg-[var(--color-head-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-head)]">
                   {p.badge}
                 </span>
               )}
@@ -94,7 +94,7 @@ export function UpgradeModal({ open, onClose, outOfTokens }: Props) {
         <button
           onClick={() => checkout.mutate({ plan })}
           disabled={checkout.isPending}
-          className="mt-6 w-full rounded-lg bg-[var(--color-brand)] py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+          className="btn-primary mt-6 w-full py-3 text-sm font-semibold"
         >
           {checkout.isPending ? "Redirecting to checkout…" : "Subscribe Now"}
         </button>

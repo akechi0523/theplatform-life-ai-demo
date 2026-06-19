@@ -89,14 +89,13 @@ export function HomeClient() {
 
   return (
     <div className="min-h-screen">
-      {profile && (
-        <DashboardHeader
-          status={profile.subscriptionStatus}
-          tokensRemaining={profile.monthlyTokensRemaining}
-          renewalDate={profile.renewalDate}
-          onUpgradeClick={() => setModal({ open: true, outOfTokens: false })}
-        />
-      )}
+      <DashboardHeader
+        loading={!profile}
+        status={profile?.subscriptionStatus}
+        tokensRemaining={profile?.monthlyTokensRemaining}
+        renewalDate={profile?.renewalDate}
+        onUpgradeClick={() => setModal({ open: true, outOfTokens: false })}
+      />
 
       <main className="mx-auto max-w-6xl px-4 py-10">
         {isLoading ? (
@@ -111,11 +110,9 @@ export function HomeClient() {
         ) : (
           <div className="space-y-10">
             <ScenarioInput onAnalyze={handleAnalyze} disabled={isLoading} />
-            {profile?.subscriptionStatus === "free" && (
-              <div className="mx-auto max-w-2xl">
-                <ResourcesSection />
-              </div>
-            )}
+            <div className="mx-auto max-w-2xl">
+              <ResourcesSection />
+            </div>
           </div>
         )}
       </main>

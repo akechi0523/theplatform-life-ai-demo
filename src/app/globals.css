@@ -1,38 +1,53 @@
 @import "tailwindcss";
 
 /* ───────────────────────────────────────────────────────────────────────────
-   ThePlatform.life AI — mindful, soft design system
-   Tailwind v4 CSS-first config. Triad accent colors per the brief:
-   Heart = yellow, Head = green, Gut = red.
+   ThePlatform.life AI — "Awesomic" design system
+   Rounded, near-monochrome marketplace aesthetic: a single typeface (DM Sans,
+   the Cosmica substitute) doing all hierarchy via weight, extreme 36px rounding,
+   obsidian #09090b pill CTAs, and a 4-step neutral surface stack. The triad
+   colors (Heart=yellow, Head=green, Gut=red) survive as restrained accents —
+   their scarcity is what makes them land.
 ─────────────────────────────────────────────────────────────────────────── */
 
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  /* Single typeface across the whole system — weight drives hierarchy. */
+  --font-sans: var(--font-dmsans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-dmsans), ui-sans-serif, system-ui, sans-serif;
 
-  /* Base surface — warm neutrals */
-  --color-canvas: #faf8f5;
-  --color-surface: #ffffff;
-  --color-ink: #2b2724;
-  --color-muted: #6f6962;
-  --color-line: #ece7e0;
-  --color-brand: #7c6cf0;
-  --color-brand-soft: #efecfe;
+  /* Neutral surface stack: Mist → Snow → Fog → Obsidian */
+  --color-canvas: #f4f4f5; /* mist — page background */
+  --color-surface: #ffffff; /* snow — primary card */
+  --color-surface-muted: #ececee; /* fog — secondary card / tag */
+  --color-obsidian: #09090b; /* dark surface / primary action */
+  --color-graphite: #3f3f46; /* dominant border + dark badge */
+  --color-ink: #18181b; /* reading-weight text */
+  --color-muted: #71717a; /* steel — muted body copy */
+  --color-ash: #a1a1aa; /* subdued headings / placeholders */
+  --color-line: #e4e4e7; /* hairline dividers / card borders */
 
-  /* Triad palettes */
-  --color-heart: #ca8a04; /* yellow-600 */
-  --color-heart-soft: #fef9c3; /* yellow-100 */
-  --color-heart-line: #fde68a; /* yellow-300 */
+  /* Brand action is achromatic — obsidian, never a chromatic CTA. */
+  --color-brand: #09090b;
+  --color-brand-soft: #f4f4f5;
 
-  --color-head: #16a34a; /* green-600 */
-  --color-head-soft: #dcfce7; /* green-100 */
-  --color-head-line: #86efac; /* green-300 */
+  /* Reserved vivid accents — used only as scarce markers. */
+  --color-ember: #ff5a00;
 
-  --color-gut: #dc2626; /* red-600 */
-  --color-gut-soft: #fee2e2; /* red-100 */
-  --color-gut-line: #fca5a5; /* red-300 */
+  /* Triad palettes — preserved semantic accents (badges + thin rules only). */
+  --color-heart: #ca8a04;
+  --color-heart-soft: #fef9c3;
+  --color-heart-line: #fde68a;
 
-  --radius-card: 1rem;
+  --color-head: #16a34a;
+  --color-head-soft: #dcfce7;
+  --color-head-line: #86efac;
+
+  --color-gut: #dc2626;
+  --color-gut-soft: #fee2e2;
+  --color-gut-line: #fca5a5;
+
+  /* Extreme rounding is the system's signature. */
+  --radius-card: 2.25rem; /* 36px — primary cards */
+  --radius-compact: 1.75rem; /* 28px — compact cards */
 }
 
 html,
@@ -40,14 +55,62 @@ body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
 }
 
 .font-serif {
+  /* Single-voice system: "serif" headings render in the same sans, heavier. */
   font-family: var(--font-serif);
+  letter-spacing: -0.02em;
 }
 
-/* Subtle entrance animations used across the results view */
+/* ── Signature components ──────────────────────────────────────────────── */
+
+/* Primary obsidian pill — the multi-layer shadow gives it a pressed-glass feel.
+   Reserved for the single dark CTA pattern; never recolored. */
+.btn-primary {
+  background: var(--color-obsidian);
+  color: #ffffff;
+  border-radius: 9999px;
+  box-shadow:
+    rgba(255, 255, 255, 0.5) 0px 0.5px 0px 0px inset,
+    rgba(117, 123, 133, 0.4) 0px 9px 14px -5px inset,
+    rgb(44, 46, 52) 0px 0px 0px 1.5px,
+    rgba(0, 0, 0, 0.14) 0px 4px 6px 0px;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+}
+
+/* Outlined ghost pill — white fill against a graphite hairline. */
+.btn-ghost {
+  background: var(--color-surface);
+  color: var(--color-graphite);
+  border: 1px solid var(--color-line);
+  border-radius: 9999px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--color-graphite);
+}
+
+/* White bubble card — depth comes from surface color steps, not shadows. */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+}
+
+/* ── Motion ────────────────────────────────────────────────────────────── */
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -70,16 +133,15 @@ body {
 }
 
 .animate-fade-up {
-  animation: fade-up 0.5s ease-out both;
+  /* Mild overshoot spring reserved for entrances. */
+  animation: fade-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 1.6s ease-in-out infinite;
 }
 
-/* Glowing ring for the user's self-identified type card */
+/* Selection ring for the user's self-identified type — obsidian, achromatic. */
 .ring-self {
-  box-shadow:
-    0 0 0 2px var(--color-brand),
-    0 0 22px 2px color-mix(in srgb, var(--color-brand) 45%, transparent);
+  box-shadow: 0 0 0 1.5px var(--color-obsidian);
 }

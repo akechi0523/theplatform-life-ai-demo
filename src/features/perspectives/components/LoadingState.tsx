@@ -20,21 +20,24 @@ export function LoadingState() {
 
   return (
     <div className="animate-fade-up">
-      <p className="mb-6 text-center text-sm font-medium text-[var(--color-brand)]">
+      <p className="mb-6 text-center text-sm font-medium text-[var(--color-muted)]">
         {MESSAGES[msgIndex]}
       </p>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         {[0, 1, 2].map((col) => (
-          <div key={col} className="space-y-3 rounded-2xl border border-[var(--color-line)] p-3">
-            <div className="h-5 w-28 animate-pulse-soft rounded bg-[var(--color-line)]" />
+          <div
+            key={col}
+            className="space-y-3 rounded-[var(--radius-card)] bg-[var(--color-surface-muted)] p-4"
+          >
+            <div className="h-5 w-28 animate-pulse-soft rounded-lg bg-[var(--color-line)]" />
             {[0, 1, 2].map((row) => (
               <div
                 key={row}
-                className="animate-pulse-soft rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4"
+                className="animate-pulse-soft rounded-[var(--radius-compact)] bg-[var(--color-surface)] p-5"
                 style={{ animationDelay: `${(col * 3 + row) * 120}ms` }}
               >
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-full bg-[var(--color-line)]" />
+                  <div className="h-8 w-8 rounded-xl bg-[var(--color-line)]" />
                   <div className="h-4 w-24 rounded bg-[var(--color-line)]" />
                 </div>
                 <div className="space-y-2">

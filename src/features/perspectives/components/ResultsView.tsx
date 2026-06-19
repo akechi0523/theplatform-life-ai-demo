@@ -52,24 +52,24 @@ export function ResultsView({ result, selfType, onSelfTypeChange, onReset }: Pro
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={copyLink}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-brand)]"
+            className="btn-ghost inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
           >
-            <Link21 size={16} color="#7c6cf0" variant="Linear" /> Copy link
+            <Link21 size={16} color="#3f3f46" variant="Linear" /> Copy link
           </button>
           <button
             onClick={() => downloadAnalysisPdf(result)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-brand)]"
+            className="btn-ghost inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
           >
-            <DocumentDownload size={16} color="#7c6cf0" variant="Linear" /> Download PDF
+            <DocumentDownload size={16} color="#3f3f46" variant="Linear" /> Download PDF
           </button>
         </div>
       </div>
 
-      <div className="mb-5 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">
+      <div className="mb-5 rounded-[var(--radius-compact)] bg-[var(--color-surface)] p-6">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ash)]">
           Scenario
         </p>
-        <p className="mt-1 font-serif text-lg">{result.scenario}</p>
+        <p className="mt-1.5 font-serif text-xl font-semibold">{result.scenario}</p>
       </div>
 
       <div className="mb-5">

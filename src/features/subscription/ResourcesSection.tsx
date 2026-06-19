@@ -41,7 +41,7 @@ export function ResourcesSection() {
               href={r.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-start gap-3 rounded-xl border border-[var(--color-line)] p-3 transition hover:border-[var(--color-brand)]"
+              className="group flex items-start gap-3 rounded-2xl border border-[var(--color-line)] p-3.5 transition hover:border-[var(--color-graphite)]"
             >
               <span className="mt-0.5 shrink-0">{r.icon}</span>
               <span className="flex-1">
@@ -49,7 +49,7 @@ export function ResourcesSection() {
                   {r.title}
                   <ExportSquare
                     size={14}
-                    color="#7c6cf0"
+                    color="#3f3f46"
                     variant="Linear"
                     className="opacity-0 transition group-hover:opacity-100"
                   />

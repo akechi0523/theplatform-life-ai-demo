@@ -38,11 +38,14 @@ export async function POST(req: Request) {
             typeof session.subscription === "string"
               ? await stripe.subscriptions.retrieve(session.subscription)
               : null;
+          // In the Basil API version the billing period moved from the
+          // subscription onto its items, so read it from the first item.
+          const periodEnd = sub?.items.data[0]?.current_period_end;
           await grantPremium(userId, {
             stripeCustomerId:
               typeof session.customer === "string" ? session.customer : undefined,
             stripeSubscriptionId: sub?.id,
-            renewalDate: sub ? new Date(sub.current_period_end * 1000) : undefined,
+            renewalDate: periodEnd ? new Date(periodEnd * 1000) : undefined,
           });
         }
         break;

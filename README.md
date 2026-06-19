@@ -38,7 +38,7 @@ src/
     db/                        # schema.ts (drizzle) · index.ts (client)
   features/
     perspectives/
-      data/                    # types (9 types, triads, paths) · schema (zod) · mockData
+      data/                    # types (9 types, triads, paths) · schema (zod)
       prompt.ts                # LLM prompt builder (no "Enneagram" wording)
       components/              # Grid · Card · DetailPanel · ScenarioInput · LoadingState · ResultsView · MyTypeSelector
     subscription/              # DashboardHeader · UpgradeModal · ResourcesSection · SubscriptionBadge
@@ -49,7 +49,7 @@ src/
 
 **Single source of truth:** all type names, triads (Heart=yellow / Head=green / Gut=red), and
 the corrected stress/security shift paths live in `src/features/perspectives/data/types.ts`.
-The mock data, LLM prompt, UI, and PDF all derive from it.
+The LLM prompt, UI, and PDF all derive from it.
 
 ## Product rules baked in
 
@@ -129,8 +129,7 @@ Set in `.env.local`:
 LLM_PROVIDER=openai      # or deepseek | xai
 LLM_MODEL=gpt-4o         # provider-appropriate model id
 ```
-The sample "buying a house" scenario returns curated mock data instantly (no API call); any
-other scenario calls the configured provider with strict JSON-schema structured output.
+Every scenario calls the configured provider with strict JSON-schema structured output.
 
 ## Scripts
 | Command | Purpose |

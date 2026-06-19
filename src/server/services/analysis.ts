@@ -3,7 +3,6 @@ import {
   llmTypesSchema,
   type AnalysisResult,
 } from "@/features/perspectives/data/schema";
-import { HOME_BUYING_MOCK, SAMPLE_SCENARIO } from "@/features/perspectives/data/mockData";
 import { PERSPECTIVE_TYPES } from "@/features/perspectives/data/types";
 import { getModelOption } from "@/features/perspectives/data/models";
 import {
@@ -43,32 +42,14 @@ function repairTruncatedJson(raw: string): string {
   return s;
 }
 
-function isSampleScenario(scenario: string): boolean {
-  const n = scenario.trim().toLowerCase();
-  return (
-    n === SAMPLE_SCENARIO.toLowerCase() ||
-    n.includes("buying a house") ||
-    n.includes("buying a home")
-  );
-}
-
 /**
- * Produces a complete 9-type analysis for the scenario.
- * Returns mock data instantly for the sample scenario; otherwise calls the LLM,
- * repairs/validates the JSON, and backfills any missing types from the mock so
- * the grid is always complete.
+ * Produces a complete 9-type analysis for the scenario by calling the LLM,
+ * then repairing/validating the JSON and ordering the types canonically.
  */
 export async function analyzeScenario(
   scenario: string,
   modelId?: string,
 ): Promise<AnalysisResult> {
-  if (isSampleScenario(scenario)) {
-    return analysisResultSchema.parse({
-      ...HOME_BUYING_MOCK,
-      generatedAt: new Date().toISOString(),
-    });
-  }
-
   const { provider, model } = getModelOption(modelId);
 
   const raw = await invokeLLM({
@@ -102,13 +83,6 @@ export async function analyzeScenario(
     throw new Error("The analysis engine returned no perspectives. Please try again.");
   }
 
-  // Backfill any missing types from the mock so the UI always shows all 9.
-  if (types.length < 9) {
-    const present = new Set(types.map((t) => t.typeNumber));
-    for (const mockType of HOME_BUYING_MOCK.types) {
-      if (!present.has(mockType.typeNumber)) types.push({ ...mockType });
-    }
-  }
   // Keep only valid 1-9, dedupe, and order canonically.
   const byNumber = new Map<number, (typeof types)[number]>();
   for (const t of types) {

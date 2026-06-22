@@ -1,10 +1,36 @@
-import { PERSPECTIVE_TYPES, securityPathLabel, stressPathLabel, taglineFor } from "./data/types";
+import {
+  GRID_REVEAL_ORDER,
+  PERSPECTIVE_TYPES,
+  securityPathLabel,
+  stressPathLabel,
+  taglineFor,
+} from "./data/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Prompt builder for the 360° of Perspectives analysis engine.
 // Deliberately avoids the word "Enneagram" entirely and bakes in the exact
 // shift paths + terminology so the model can't drift.
+//
+// Caching note: EVERYTHING static (rules, field spec, the full type spec, the
+// output order) lives in SYSTEM_PROMPT, which is byte-for-byte identical on
+// every request. Only the user's scenario varies (buildUserPrompt). Providers
+// that auto-cache prompt prefixes (OpenAI, DeepSeek) then serve the large static
+// block from cache, cutting input-token cost without changing output quality.
+//
+// Reveal order: the spec and the output instruction are both ordered by
+// GRID_REVEAL_ORDER (the grid's left-to-right, row-by-row reading order:
+// 2,5,8,3,6,9,4,7,1), so the model emits cards in the order they should appear
+// and they stream into their slots evenly, one row at a time.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const TYPE_SPEC = GRID_REVEAL_ORDER.map((n) => {
+  const t = PERSPECTIVE_TYPES[n];
+  return `- Type ${t.number} = "${t.name}" | tagline: "${taglineFor(t.number)}" | ${stressPathLabel(
+    t.number,
+  )} | ${securityPathLabel(t.number)}`;
+}).join("\n");
+
+const OUTPUT_ORDER = GRID_REVEAL_ORDER.join(", ");
 
 export const SYSTEM_PROMPT = `You are an expert in the 360° of Perspectives — a framework describing nine distinct perspective types, each with a core worldview and predictable shifts under stress and in security.
 
@@ -16,20 +42,9 @@ Rules:
 - Use the word "type" throughout (e.g. "Type 4"). Never use the word "Enneagram".
 - When describing pressure, use "unaware" (never "unhealthy"). When describing safety, use "aware" (never "healthy").
 - Use "shifts toward" (never "disintegrates" or "integrates") when describing movement between types.
-- Return ONLY valid JSON matching the schema. No markdown, no commentary.`;
+- Return ONLY valid JSON matching the schema. No markdown, no commentary.
 
-const TYPE_SPEC = Object.values(PERSPECTIVE_TYPES)
-  .map((t) => {
-    return `- Type ${t.number} = "${t.name}" | tagline: "${taglineFor(t.number)}" | ${stressPathLabel(
-      t.number,
-    )} | ${securityPathLabel(t.number)}`;
-  })
-  .join("\n");
-
-export function buildUserPrompt(scenario: string): string {
-  return `Scenario: "${scenario}"
-
-Analyze this scenario through all 9 perspective types. For EACH type, return an object with exactly these fields:
+Task: analyze the user's scenario through all 9 perspective types. For EACH type, return an object with exactly these fields:
 - typeNumber (integer 1-9)
 - typeName (use the EXACT names below)
 - tagline (use the EXACT tagline below)
@@ -40,10 +55,15 @@ Analyze this scenario through all 9 perspective types. For EACH type, return an 
 - securityResponse (2-3 sentences: how this type behaves when AWARE and feeling safe in this scenario; reference their security shift; use the word "aware"; use "shifts toward")
 - securityPath (use the EXACT security path string below)
 
-Use these EXACT names, taglines, and shift paths — do not invent your own:
+Use these EXACT names, taglines, and shift paths — do not invent your own. They are listed below in the REQUIRED output order:
 ${TYPE_SPEC}
 
-Return JSON of the form: { "types": [ ...9 objects, one per type, ordered 1 through 9... ] }`;
+IMPORTANT — output order: return the 9 objects ordered by typeNumber in EXACTLY this sequence (this is the display order, NOT 1 through 9): ${OUTPUT_ORDER}. Each object must still carry its own correct typeNumber, typeName, tagline, and shift paths.
+
+Return JSON of the form: { "types": [ ...9 objects, emitted in the order ${OUTPUT_ORDER}... ] }`;
+
+export function buildUserPrompt(scenario: string): string {
+  return `Scenario: "${scenario}"`;
 }
 
 /** JSON schema handed to the LLM for structured output (OpenAI-compatible). */

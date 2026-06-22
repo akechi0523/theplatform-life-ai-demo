@@ -132,9 +132,34 @@ body {
   }
 }
 
+/* Per-card entrance for the streaming reveal — a slightly lifted slide so each
+   card "lands" in its slot as it streams in. Deliberately NO forwards/both
+   fill-mode: once it plays, the transform reverts to the element's own styles
+   so the hover-lift keeps working. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .animate-fade-up {
   /* Mild overshoot spring reserved for entrances. */
   animation: fade-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-card-in {
+  animation: card-in 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-in {
+    animation: none;
+  }
 }
 
 .animate-pulse-soft {

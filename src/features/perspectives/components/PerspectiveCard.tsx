@@ -18,7 +18,7 @@ export function PerspectiveCard({ type, isSelf, onClick }: Props) {
     <button
       onClick={onClick}
       className={cn(
-        "group relative w-full rounded-[var(--radius-compact)] bg-[var(--color-surface)] p-5 text-left transition duration-200",
+        "group animate-card-in relative w-full rounded-[var(--radius-compact)] bg-[var(--color-surface)] p-5 text-left transition duration-200",
         "hover:-translate-y-0.5",
         isSelf && "ring-self",
       )}

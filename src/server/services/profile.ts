@@ -80,6 +80,28 @@ export async function consumeToken(userId: string): Promise<ConsumeResult> {
   return { success: true, tokensRemaining: newCount };
 }
 
+/**
+ * Returns one consumed token after a failed analysis, so a glitch never costs
+ * the user their credit. Best-effort and non-critical; never throws. Premium
+ * accounts sit far above the cap, so a refund there is a harmless no-op.
+ */
+export async function refundToken(userId: string): Promise<void> {
+  try {
+    const rows = await db
+      .select({ remaining: profiles.monthlyTokensRemaining })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1);
+    if (rows.length === 0) return;
+    await db
+      .update(profiles)
+      .set({ monthlyTokensRemaining: rows[0].remaining + 1, updatedAt: new Date() })
+      .where(eq(profiles.id, userId));
+  } catch {
+    /* swallow — refund is best-effort */
+  }
+}
+
 /** Records an analysis run for history (non-critical; never throws). */
 export async function recordAnalysis(userId: string, scenario: string): Promise<void> {
   try {

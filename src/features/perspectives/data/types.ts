@@ -110,6 +110,24 @@ export const TRIADS: TriadMeta[] = [
 /** Flat list of type numbers in the canonical Heart→Head→Gut order (used by the PDF + grid). */
 export const ORDERED_TYPE_NUMBERS: number[] = TRIADS.flatMap((t) => t.typeNumbers);
 
+/**
+ * The grid's visual reading order — left-to-right, row by row across the triad
+ * columns: row 1 = [2,5,8], row 2 = [3,6,9], row 3 = [4,7,1]. Derived from
+ * TRIADS so it stays in lock-step with the column layout. Used to reveal
+ * streamed cards in reading order instead of the model's emission order.
+ */
+export const GRID_REVEAL_ORDER: number[] = (() => {
+  const rows = Math.max(...TRIADS.map((t) => t.typeNumbers.length));
+  const order: number[] = [];
+  for (let row = 0; row < rows; row++) {
+    for (const triad of TRIADS) {
+      const n = triad.typeNumbers[row];
+      if (n !== undefined) order.push(n);
+    }
+  }
+  return order;
+})();
+
 /** PDF pages: 3 types per page, in triad order. */
 export const PDF_PAGES: number[][] = TRIADS.map((t) => t.typeNumbers);
 

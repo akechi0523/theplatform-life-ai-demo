@@ -3,11 +3,15 @@
   "framework": "nextjs",
   "buildCommand": "next build",
   "installCommand": "npm install",
+  "regions": ["iad1"],
   "functions": {
     "src/app/api/stripe/webhook/route.ts": {
       "maxDuration": 30
     },
     "src/app/api/trpc/[trpc]/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/analyze/stream/route.ts": {
       "maxDuration": 60
     }
   }

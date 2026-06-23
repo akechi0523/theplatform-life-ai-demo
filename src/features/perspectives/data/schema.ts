@@ -8,10 +8,10 @@ import { MODEL_IDS } from "./models";
 
 export const perspectiveTypeAnalysisSchema = z.object({
   typeNumber: z.number().int().min(1).max(9),
+  /** 1-2 sentence summary shown on the card — emitted 2nd so the card renders early */
+  summary: z.string(),
   typeName: z.string(),
   tagline: z.string(),
-  /** 1-2 sentence summary shown on the card */
-  summary: z.string(),
   /** How this type frames the scenario / their worldview applied here */
   scenarioOutlook: z.string(),
   /** Behavior under pressure — references the stress shift, uses "unaware" */

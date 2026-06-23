@@ -19,6 +19,40 @@ import {
 } from "@/features/perspectives/prompt";
 import { invokeLLM, streamLLM, type TokenUsage } from "./llm";
 import { PerspectiveStreamParser } from "./jsonStream";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+/**
+ * Dev aid: dump the exact system + user prompt sent to the LLM into a .txt file
+ * under `logs/` so it can be inspected verbatim. No-op in production and never
+ * throws (best-effort logging must not break an analysis).
+ */
+async function logPromptToFile(scenario: string, model: string, system: string, user: string) {
+  if (process.env.NODE_ENV === "production") return;
+  try {
+    const dir = join(process.cwd(), "logs");
+    await mkdir(dir, { recursive: true });
+    // Windows filenames can't contain ":" — use a filesystem-safe timestamp.
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const body = [
+      `# LLM PROMPT DUMP`,
+      `timestamp: ${new Date().toISOString()}`,
+      `model:     ${model}`,
+      `scenario:  ${scenario}`,
+      ``,
+      `===== SYSTEM PROMPT (${system.length} chars) =====`,
+      system,
+      ``,
+      `===== USER PROMPT (${user.length} chars) =====`,
+      user,
+      ``,
+    ].join("\n");
+    await writeFile(join(dir, `prompt-${stamp}.txt`), body, "utf8");
+    console.info(`[analysis] prompt written to logs/prompt-${stamp}.txt`);
+  } catch (err) {
+    console.warn("[analysis] failed to write prompt log:", err);
+  }
+}
 
 /** Recovers a truncated JSON string by closing any open structures. */
 function repairTruncatedJson(raw: string): string {
@@ -60,10 +94,13 @@ export async function analyzeScenario(
 ): Promise<AnalysisResult> {
   const { provider, model } = getModelOption(modelId);
 
+  const userPrompt = buildUserPrompt(scenario);
+  await logPromptToFile(scenario, model, SYSTEM_PROMPT, userPrompt);
+
   const raw = await invokeLLM({
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(scenario) },
+      { role: "user", content: userPrompt },
     ],
     maxTokens: 6000,
     provider,
@@ -161,10 +198,19 @@ export async function* analyzeScenarioStream(
   const collected: PerspectiveTypeAnalysis[] = [];
   let usage: TokenUsage | undefined;
 
+  // Dev aid: trace the stream so the growing JSON can be watched live in the
+  // server terminal and diffed against the rendered cards.
+  const trace = process.env.NODE_ENV !== "production";
+  const startedAt = Date.now();
+  let firstAt = 0;
+
+  const userPrompt = buildUserPrompt(scenario);
+  await logPromptToFile(scenario, model, SYSTEM_PROMPT, userPrompt);
+
   for await (const chunk of streamLLM({
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(scenario) },
+      { role: "user", content: userPrompt },
     ],
     maxTokens: 6000,
     provider,
@@ -177,6 +223,10 @@ export async function* analyzeScenarioStream(
   })) {
     if (chunk.usage) usage = chunk.usage;
     if (!chunk.delta) continue;
+
+    // Echo each raw text delta with no newline, so the JSON document visibly
+    // assembles itself in the terminal exactly as the model emits it.
+    if (trace) process.stdout.write(chunk.delta);
 
     const { faces, completed } = parser.push(chunk.delta);
 
@@ -191,6 +241,13 @@ export async function* analyzeScenarioStream(
       const face = faceToPerspective(candidate);
       if (!face || facesSeen.has(face.typeNumber)) continue;
       facesSeen.add(face.typeNumber);
+      if (!firstAt) firstAt = Date.now();
+      if (trace) {
+        const t0 = firstAt - startedAt;
+        console.info(
+          `\n[analysis] ▸ FACE  type ${face.typeNumber} @ +${(t0 / 1000).toFixed(2)}s — "${face.summary.slice(0, 60)}…"`,
+        );
+      }
       yield { kind: "perspective", data: face, complete: false };
     }
 
@@ -208,6 +265,7 @@ export async function* analyzeScenarioStream(
       if (!PERSPECTIVE_TYPES[t.typeNumber] || seen.has(t.typeNumber)) continue;
       seen.add(t.typeNumber);
       collected.push(t);
+      if (trace) console.info(`\n[analysis] ■ FULL  type ${t.typeNumber} (${t.typeName}) — prose complete`);
       yield { kind: "perspective", data: t, complete: true };
     }
   }
@@ -236,6 +294,18 @@ export async function* analyzeScenarioStream(
   finalTypes = orderTypes(finalTypes);
   if (finalTypes.length === 0) {
     throw new Error("The analysis engine returned no perspectives. Please try again.");
+  }
+
+  // Dev aid: dump the raw model JSON so it can be diffed against the rendered
+  // cards in local testing, plus the two headline latencies.
+  if (trace) {
+    const totalMs = Date.now() - startedAt;
+    const firstMs = firstAt ? firstAt - startedAt : null;
+    console.info(
+      `\n[analysis] ⏱ first perspective: ${firstMs != null ? (firstMs / 1000).toFixed(2) + "s" : "n/a"} · ` +
+        `full stream: ${(totalMs / 1000).toFixed(2)}s · ${finalTypes.length} types`,
+    );
+    console.info(`[analysis] raw LLM JSON (${finalTypes.length} types):\n${parser.raw()}`);
   }
 
   yield {

@@ -44,11 +44,11 @@ Rules:
 - Use "shifts toward" (never "disintegrates" or "integrates") when describing movement between types.
 - Return ONLY valid JSON matching the schema. No markdown, no commentary.
 
-Task: analyze the user's scenario through all 9 perspective types. For EACH type, return an object with exactly these fields:
+Task: analyze the user's scenario through all 9 perspective types. For EACH type, return an object with the fields in EXACTLY this order (summary comes second, right after typeNumber, so the card can render the moment it is ready):
 - typeNumber (integer 1-9)
+- summary (1-2 sentences: their core perspective on THIS scenario)
 - typeName (use the EXACT names below)
 - tagline (use the EXACT tagline below)
-- summary (1-2 sentences: their core perspective on THIS scenario)
 - scenarioOutlook (2-3 sentences: how they frame the problem and their worldview applied here)
 - stressResponse (2-3 sentences: how this type behaves when UNAWARE and under pressure in this scenario; reference their stress shift; use the word "unaware"; use "shifts toward")
 - stressPath (use the EXACT stress path string below)
@@ -77,11 +77,15 @@ export const ANALYSIS_JSON_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
+        // Order matters: OpenAI strict structured output emits properties in
+        // this sequence, and json_object providers follow the prompt's order.
+        // `summary` is second (right after typeNumber) so the card's "face"
+        // closes early and renders without waiting for typeName/tagline/prose.
         required: [
           "typeNumber",
+          "summary",
           "typeName",
           "tagline",
-          "summary",
           "scenarioOutlook",
           "stressResponse",
           "stressPath",
@@ -90,9 +94,9 @@ export const ANALYSIS_JSON_SCHEMA = {
         ],
         properties: {
           typeNumber: { type: "integer" },
+          summary: { type: "string" },
           typeName: { type: "string" },
           tagline: { type: "string" },
-          summary: { type: "string" },
           scenarioOutlook: { type: "string" },
           stressResponse: { type: "string" },
           stressPath: { type: "string" },

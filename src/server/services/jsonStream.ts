@@ -16,12 +16,14 @@
 //   a type object `{`   → depth 3   (its fields are flat strings/numbers)
 //
 // Field order is fixed by the schema/prompt:
-//   typeNumber, typeName, tagline, summary, scenarioOutlook, …
-// so the 4th object-level comma (one not inside a string) terminates `summary`.
+//   typeNumber, summary, typeName, tagline, scenarioOutlook, …
+// `summary` is deliberately the 2nd field (typeName/tagline are filled locally
+// from metadata), so the 2nd object-level comma (one not inside a string)
+// terminates `summary` — the face closes as early as possible.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Object-level commas seen once `summary` (the 4th field) is complete. */
-const COMMAS_THROUGH_SUMMARY = 4;
+/** Object-level commas seen once `summary` (the 2nd field) is complete. */
+const COMMAS_THROUGH_SUMMARY = 2;
 
 export interface StreamParseOutput {
   /** JSON strings of objects whose face (through `summary`) just became available. */

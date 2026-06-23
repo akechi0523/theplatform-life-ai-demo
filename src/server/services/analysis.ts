@@ -5,7 +5,12 @@ import {
   type AnalysisResult,
   type PerspectiveTypeAnalysis,
 } from "@/features/perspectives/data/schema";
-import { PERSPECTIVE_TYPES } from "@/features/perspectives/data/types";
+import {
+  PERSPECTIVE_TYPES,
+  securityPathLabel,
+  stressPathLabel,
+  taglineFor,
+} from "@/features/perspectives/data/types";
 import { getModelOption } from "@/features/perspectives/data/models";
 import {
   ANALYSIS_JSON_SCHEMA,
@@ -103,15 +108,46 @@ function orderTypes(types: PerspectiveTypeAnalysis[]): PerspectiveTypeAnalysis[]
   return [...byNumber.values()].sort((a, b) => a.typeNumber - b.typeNumber);
 }
 
-/** Event surface of the streaming analysis: each ready perspective, then a final summary. */
+/**
+ * Event surface of the streaming analysis. A perspective is emitted twice: a
+ * `complete: false` "face" the moment its summary is ready (so the card can
+ * render), then `complete: true` once its prose fields finish. The client
+ * merges by typeNumber. A final `done` event carries the canonical result.
+ */
 export type AnalysisStreamEvent =
-  | { kind: "perspective"; data: PerspectiveTypeAnalysis }
+  | { kind: "perspective"; data: PerspectiveTypeAnalysis; complete: boolean }
   | { kind: "done"; result: AnalysisResult; usage?: TokenUsage };
 
 /**
- * Streaming counterpart of {@link analyzeScenario}. Yields each perspective as
- * soon as the model finishes it (for progressive rendering), then a final
- * `done` event carrying the canonical, ordered result and token usage.
+ * Builds a renderable card from a face slice (typeNumber + summary). The fields
+ * we already know locally (name, tagline, shift paths) are filled from metadata;
+ * the heavier prose fields stay empty until the `complete` event replaces them.
+ */
+function faceToPerspective(raw: unknown): PerspectiveTypeAnalysis | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const f = raw as Record<string, unknown>;
+  const num = typeof f.typeNumber === "number" ? f.typeNumber : Number(f.typeNumber);
+  if (!Number.isInteger(num) || !PERSPECTIVE_TYPES[num]) return null;
+  if (typeof f.summary !== "string" || f.summary.length === 0) return null;
+
+  const meta = PERSPECTIVE_TYPES[num];
+  return {
+    typeNumber: num,
+    typeName: typeof f.typeName === "string" && f.typeName ? f.typeName : meta.name,
+    tagline: typeof f.tagline === "string" && f.tagline ? f.tagline : taglineFor(num),
+    summary: f.summary,
+    scenarioOutlook: "",
+    stressResponse: "",
+    stressPath: stressPathLabel(num),
+    securityResponse: "",
+    securityPath: securityPathLabel(num),
+  };
+}
+
+/**
+ * Streaming counterpart of {@link analyzeScenario}. Emits each card's face as
+ * soon as its summary is ready, then the full perspective when its prose
+ * completes, then a final `done` event with the canonical, ordered result.
  */
 export async function* analyzeScenarioStream(
   scenario: string,
@@ -120,6 +156,7 @@ export async function* analyzeScenarioStream(
 ): AsyncGenerator<AnalysisStreamEvent> {
   const { provider, model } = getModelOption(modelId);
   const parser = new PerspectiveStreamParser();
+  const facesSeen = new Set<number>();
   const seen = new Set<number>();
   const collected: PerspectiveTypeAnalysis[] = [];
   let usage: TokenUsage | undefined;
@@ -141,7 +178,24 @@ export async function* analyzeScenarioStream(
     if (chunk.usage) usage = chunk.usage;
     if (!chunk.delta) continue;
 
-    for (const rawObject of parser.push(chunk.delta)) {
+    const { faces, completed } = parser.push(chunk.delta);
+
+    // Faces first: render the card the instant its summary lands.
+    for (const rawFace of faces) {
+      let candidate: unknown;
+      try {
+        candidate = JSON.parse(rawFace);
+      } catch {
+        continue;
+      }
+      const face = faceToPerspective(candidate);
+      if (!face || facesSeen.has(face.typeNumber)) continue;
+      facesSeen.add(face.typeNumber);
+      yield { kind: "perspective", data: face, complete: false };
+    }
+
+    // Then the fully-formed objects with their prose fields.
+    for (const rawObject of completed) {
       let candidate: unknown;
       try {
         candidate = JSON.parse(rawObject);
@@ -154,7 +208,7 @@ export async function* analyzeScenarioStream(
       if (!PERSPECTIVE_TYPES[t.typeNumber] || seen.has(t.typeNumber)) continue;
       seen.add(t.typeNumber);
       collected.push(t);
-      yield { kind: "perspective", data: t };
+      yield { kind: "perspective", data: t, complete: true };
     }
   }
 
@@ -170,7 +224,7 @@ export async function* analyzeScenarioStream(
           if (!seen.has(t.typeNumber)) {
             seen.add(t.typeNumber);
             finalTypes.push(t);
-            yield { kind: "perspective", data: t };
+            yield { kind: "perspective", data: t, complete: true };
           }
         }
       }

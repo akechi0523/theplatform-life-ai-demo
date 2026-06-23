@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 
 /** One NDJSON line per event: perspective | done | error. */
 type StreamEvent =
-  | { event: "perspective"; data: unknown }
+  | { event: "perspective"; data: unknown; complete: boolean }
   | { event: "done"; result: unknown; metrics: unknown }
   | { event: "error"; code: "ANALYSIS_FAILED"; message: string };
 
@@ -73,8 +73,9 @@ export async function POST(req: Request) {
       try {
         for await (const ev of analyzeScenarioStream(scenario, effective.id, req.signal)) {
           if (ev.kind === "perspective") {
+            // First face = the user's first visible content; that's the metric.
             if (!firstAt) firstAt = Date.now();
-            write({ event: "perspective", data: ev.data });
+            write({ event: "perspective", data: ev.data, complete: ev.complete });
             continue;
           }
 

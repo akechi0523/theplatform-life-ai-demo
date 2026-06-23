@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, DocumentDownload, Link21 } from "iconsax-reactjs";
 import { toast } from "sonner";
-import type { AnalysisResult, PerspectiveTypeAnalysis } from "../data/schema";
+import type { AnalysisResult } from "../data/schema";
 import type { AnalysisMetrics } from "../hooks/useAnalysisStream";
 import { buildShareUrl } from "@/lib/share";
 import { downloadAnalysisPdf } from "@/lib/pdf";
@@ -54,14 +54,22 @@ export function ResultsView({
   streamedCount = 0,
   metrics = null,
 }: Props) {
-  const [selected, setSelected] = useState<PerspectiveTypeAnalysis | null>(null);
+  // Track the selected type by NUMBER, not a snapshot, so the open panel always
+  // reflects the latest streamed data (prose filling in after the face).
+  const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
 
   const byNumber = new Map(result.types.map((t) => [t.typeNumber, t]));
+  const selected = selectedNumber != null ? (byNumber.get(selectedNumber) ?? null) : null;
 
-  // Auto-open the self-identified type's panel whenever new results load.
+  // Auto-open the self-identified type's panel once per analysis, as soon as
+  // that card appears — not on every streaming update (which would re-pop it).
+  const autoOpenedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (selfType && byNumber.has(selfType)) {
-      setSelected(byNumber.get(selfType)!);
+    if (autoOpenedFor.current !== result.scenario) autoOpenedFor.current = null;
+    if (!selfType || autoOpenedFor.current === result.scenario) return;
+    if (byNumber.has(selfType)) {
+      setSelectedNumber(selfType);
+      autoOpenedFor.current = result.scenario;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, selfType]);
@@ -125,10 +133,10 @@ export function ResultsView({
       <PerspectiveGrid
         types={result.types}
         selfType={selfType}
-        onSelect={(n) => setSelected(byNumber.get(n) ?? null)}
+        onSelect={(n) => setSelectedNumber(n)}
       />
 
-      <DetailPanel type={selected} onClose={() => setSelected(null)} />
+      <DetailPanel type={selected} onClose={() => setSelectedNumber(null)} />
     </div>
   );
 }

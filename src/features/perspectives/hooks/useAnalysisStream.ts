@@ -102,7 +102,7 @@ export function useAnalysisStream() {
           if (!line) continue;
 
           let evt:
-            | { event: "perspective"; data: PerspectiveTypeAnalysis }
+            | { event: "perspective"; data: PerspectiveTypeAnalysis; complete: boolean }
             | { event: "done"; result: AnalysisResult; metrics: AnalysisMetrics }
             | { event: "error"; code: string; message: string };
           try {
@@ -112,11 +112,20 @@ export function useAnalysisStream() {
           }
 
           if (evt.event === "perspective") {
-            setState((s) =>
-              s.types.some((t) => t.typeNumber === evt.data.typeNumber)
-                ? s
-                : { ...s, types: [...s.types, evt.data].sort((a, b) => a.typeNumber - b.typeNumber) },
-            );
+            // Upsert by typeNumber: the face renders the card, then the later
+            // complete event merges in the prose fields without losing it.
+            setState((s) => {
+              const idx = s.types.findIndex((t) => t.typeNumber === evt.data.typeNumber);
+              if (idx === -1) {
+                return {
+                  ...s,
+                  types: [...s.types, evt.data].sort((a, b) => a.typeNumber - b.typeNumber),
+                };
+              }
+              const next = s.types.slice();
+              next[idx] = { ...next[idx], ...evt.data };
+              return { ...s, types: next };
+            });
           } else if (evt.event === "done") {
             setState((s) => ({
               ...s,

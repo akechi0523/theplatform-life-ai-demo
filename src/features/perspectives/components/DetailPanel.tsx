@@ -115,7 +115,15 @@ function Section({
           {pathLabel}
         </span>
       )}
-      <p className="text-sm leading-relaxed text-[var(--color-ink)]/90">{body}</p>
+      {body ? (
+        <p className="text-sm leading-relaxed text-[var(--color-ink)]/90">{body}</p>
+      ) : (
+        <div className="space-y-2" aria-label="Composing…">
+          <div className="h-3 w-full animate-pulse-soft rounded bg-[var(--color-line)]" />
+          <div className="h-3 w-5/6 animate-pulse-soft rounded bg-[var(--color-line)]" />
+          <div className="h-3 w-4/6 animate-pulse-soft rounded bg-[var(--color-line)]" />
+        </div>
+      )}
     </section>
   );
 }

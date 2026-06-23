@@ -20,12 +20,14 @@ interface ModelPrice {
 }
 
 // Keyed by the exact API model id sent to the provider (see data/models.ts).
+// Rates are USD per 1M tokens, verified June 2026 — confirm against your own
+// account's billing page before quoting a client.
 const PRICES: Record<string, ModelPrice> = {
   "gpt-4o": { input: 2.5, output: 10, cachedFactor: 0.5 },
   "gpt-4o-mini": { input: 0.15, output: 0.6, cachedFactor: 0.5 },
-  "deepseek-chat": { input: 0.27, output: 1.1, cachedFactor: 0.1 },
-  "grok-4.3": { input: 3, output: 15, cachedFactor: 1 },
-  "grok-4.20-0309-reasoning": { input: 3, output: 15, cachedFactor: 1 },
+  "deepseek-chat": { input: 0.14, output: 0.28, cachedFactor: 0.1 },
+  "grok-4.3": { input: 1.25, output: 2.5, cachedFactor: 0.25 },
+  "grok-4.20-0309-reasoning": { input: 3, output: 15, cachedFactor: 0.25 },
 };
 
 export interface CostEstimate {

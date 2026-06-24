@@ -17,10 +17,10 @@
 | GPT-4.1 | OpenAI | $2.00 | $8.00 | ~1M | ★★★★ Very accurate, slightly clinical tone | Fast |
 | GPT-4o | OpenAI | $2.50 | $10.00 | 128K | ★★★★ Very good (prior flagship) | Fast |
 | **GPT-4o mini** | OpenAI | $0.15 | $0.60 | 128K | ★★★ Solid basics — free-tier option | Very fast |
-| Gemini 3.1 Pro | Google | $2.00 | $12.00 | 2M | ★★★★ Strong reasoning, can over-format | Fast |
+| Gemini 3.1 Pro | Google | $2.00 | $12.00 | 1M | ★★★★ Strong reasoning, can over-format | Fast |
 | Gemini 3.5 Flash | Google | $1.50 | $9.00 | 1M | ★★★ Good value, less depth | Very fast |
 | **DeepSeek V4 Flash** | DeepSeek | $0.14 | $0.28 | 1M | ★★★ Capable & ultra-cheap — free-tier option | Fast |
-| DeepSeek V4 (reasoning) | DeepSeek | $0.44 | $0.87 | 1M | ★★★★ Deep reasoning, utilitarian tone | Slower |
+| DeepSeek V4 Pro | DeepSeek | $0.44 | $0.87 | 1M | ★★★★ Stronger reasoning, utilitarian tone | Slower |
 | **Grok 4.3** *(current default)* | xAI | $1.25 | $2.50 | 256K | ★★★ Fast & creative, less consistent nuance | Fast |
 | Grok 4.1 Fast | xAI | $0.20 | $0.50 | 2M | ★★ Fast/cheap — free-tier option | Very fast |
 
@@ -34,16 +34,20 @@
 
 > **Measured run (Grok 4.3, our current default):** time-to-first-card **8.3s** · total **17.7s** · 1,177 in / 1,865 out tokens. (Grok is one of the slower models — a faster model is a key reason to test others.)
 
-| Model | Est. cost / analysis | Per 1,000 analyses |
-|---|---:|---:|
-| Claude Opus 4.8 | ~$0.053 | ~$53 |
-| Claude Sonnet 4.6 ⭐ | ~$0.032 | ~$32 |
-| Claude Haiku 4.5 | ~$0.011 | ~$11 |
-| GPT-4.1 | ~$0.017 | ~$17 |
-| GPT-4o mini | ~$0.0013 | ~$1.30 |
-| Gemini 3.1 Pro | ~$0.025 | ~$25 |
-| DeepSeek V4 Flash | ~$0.0007 | ~$0.69 |
-| Grok 4.3 *(current, measured)* | ~$0.0061 | ~$6.10 |
+| Model | Provider | Est. cost / analysis | Per 1,000 analyses |
+|---|---|---:|---:|
+| Claude Opus 4.8 | Anthropic | ~$0.0525 | ~$52.50 |
+| **Claude Sonnet 4.6** ⭐ | Anthropic | ~$0.0315 | ~$31.50 |
+| Claude Haiku 4.5 | Anthropic | ~$0.0105 | ~$10.50 |
+| GPT-4.1 | OpenAI | ~$0.0173 | ~$17.30 |
+| GPT-4o | OpenAI | ~$0.0216 | ~$21.60 |
+| **GPT-4o mini** | OpenAI | ~$0.0013 | ~$1.30 |
+| Gemini 3.1 Pro | Google | ~$0.0247 | ~$24.70 |
+| Gemini 3.5 Flash | Google | ~$0.0186 | ~$18.60 |
+| **DeepSeek V4 Flash** | DeepSeek | ~$0.0007 | ~$0.70 |
+| DeepSeek V4 Pro | DeepSeek | ~$0.0021 | ~$2.10 |
+| **Grok 4.3** *(current, measured)* | xAI | ~$0.0061 | ~$6.10 |
+| Grok 4.1 Fast | xAI | ~$0.0012 | ~$1.20 |
 
 **Takeaway:** even the most expensive option is a nickel per analysis. At MVP volume, **model cost is not the binding constraint** — quality and free-tier abuse protection matter more. The right play is *quality model for paying users, cheap model for free users*.
 

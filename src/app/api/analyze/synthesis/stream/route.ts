@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { analyzeInputSchema } from "@/features/perspectives/data/schema";
-import { analyzeScenarioStream } from "@/server/services/analysis";
+import { synthesizeInputSchema } from "@/features/perspectives/data/schema";
+import { synthesizePairStream } from "@/server/services/synthesis";
 import { resolveEffectiveModel } from "@/server/services/modelTier";
 import { estimateCost } from "@/server/services/pricing";
 import { consumeToken, getProfile, recordAnalysis, refundToken } from "@/server/services/profile";
@@ -9,11 +9,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 // Needs Node (Postgres + Supabase server client). Streams NDJSON to the client.
 export const runtime = "nodejs";
 
-/** One NDJSON line per event: perspective | done | error. */
+/** One NDJSON line per event: section | done | error. */
 type StreamEvent =
-  | { event: "perspective"; data: unknown; complete: boolean }
+  | { event: "section"; field: string; value: string }
   | { event: "done"; result: unknown; metrics: unknown }
-  | { event: "error"; code: "ANALYSIS_FAILED"; message: string };
+  | { event: "error"; code: "SYNTHESIS_FAILED"; message: string };
 
 export async function POST(req: Request) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -22,35 +22,45 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ code: "UNAUTHORIZED", message: "Sign in to run an analysis." }, { status: 401 });
+    return NextResponse.json({ code: "UNAUTHORIZED", message: "Sign in to run a synthesis." }, { status: 401 });
   }
 
   // ── Validate input ──────────────────────────────────────────────────────────
-  const parsed = analyzeInputSchema.safeParse(await req.json().catch(() => null));
+  const parsed = synthesizeInputSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
       { code: "BAD_INPUT", message: parsed.error.issues[0]?.message ?? "Invalid request." },
       { status: 400 },
     );
   }
-  const { scenario, modelId } = parsed.data;
+  const { scenario, types, modelId } = parsed.data;
+  // Normalize the pair low→high so lookup/echo are stable.
+  const [lo, hi] = types[0] <= types[1] ? [types[0], types[1]] : [types[1], types[0]];
 
-  // ── Tier policy: free users are clamped to a fast/low-cost model; premium
-  // unlocks the strongest one. Enforced here so the client can't bypass it. ────
+  // ── Premium gate: Flow 2 is a paid-tier feature. Reject non-premium BEFORE
+  // consuming a token so free users never reach the LLM. The client keys its
+  // upgrade modal off this exact code. ────────────────────────────────────────
   const profile = await getProfile(user.id);
   const isPremium = profile?.subscriptionStatus === "premium";
-  const effective = resolveEffectiveModel(modelId, isPremium);
-  const { provider, model } = effective;
-
-  // ── Token gate (atomic consume; refunded below if the analysis fails) ────────
-  const consumed = await consumeToken(user.id);
-  if (!consumed.success) {
-    // The client keys the upgrade modal off this exact code.
+  if (!isPremium) {
     return NextResponse.json(
-      { code: consumed.reason === "no_tokens" ? "NO_TOKENS" : "FORBIDDEN", message: "Unable to start analysis." },
+      { code: "PREMIUM_REQUIRED", message: "Comparing two types is a premium feature. Upgrade to unlock it." },
       { status: 403 },
     );
   }
+
+  const effective = resolveEffectiveModel(modelId, isPremium);
+  const { provider, model } = effective;
+
+  // ── Token gate (atomic consume; refunded below if the synthesis fails) ───────
+  const consumed = await consumeToken(user.id);
+  if (!consumed.success) {
+    return NextResponse.json(
+      { code: consumed.reason === "no_tokens" ? "NO_TOKENS" : "FORBIDDEN", message: "Unable to start synthesis." },
+      { status: 403 },
+    );
+  }
+
   const encoder = new TextEncoder();
   const startedAt = Date.now();
   let firstAt = 0;
@@ -61,11 +71,10 @@ export async function POST(req: Request) {
       let succeeded = false;
 
       try {
-        for await (const ev of analyzeScenarioStream(scenario, effective.id, req.signal)) {
-          if (ev.kind === "perspective") {
-            // First face = the user's first visible content; that's the metric.
+        for await (const ev of synthesizePairStream(scenario, lo, hi, effective.id, req.signal)) {
+          if (ev.kind === "section") {
             if (!firstAt) firstAt = Date.now();
-            write({ event: "perspective", data: ev.data, complete: ev.complete });
+            write({ event: "section", field: ev.field, value: ev.value });
             continue;
           }
 
@@ -85,8 +94,7 @@ export async function POST(req: Request) {
             cacheSavingsUsd: cost?.cacheSavingsUsd ?? null,
           };
 
-          // Server-side measurement log (the "we measure every run" story).
-          console.info("[analysis]", JSON.stringify(metrics));
+          console.info("[synthesis]", JSON.stringify(metrics));
           write({ event: "done", result: ev.result, metrics });
         }
       } catch (err) {
@@ -94,9 +102,9 @@ export async function POST(req: Request) {
         if (!succeeded) await refundToken(user.id);
         const message =
           err instanceof Error && err.name === "AbortError"
-            ? "Analysis cancelled."
-            : "The analysis engine had a problem. Your credit was not used — please try again.";
-        write({ event: "error", code: "ANALYSIS_FAILED", message });
+            ? "Synthesis cancelled."
+            : "The synthesis engine had a problem. Your credit was not used — please try again.";
+        write({ event: "error", code: "SYNTHESIS_FAILED", message });
       } finally {
         controller.close();
       }

@@ -8,13 +8,15 @@ interface Props {
   types: PerspectiveTypeAnalysis[];
   selfType: number | null;
   onSelect: (typeNumber: number) => void;
+  /** When set, cards render in multi-select mode (Flow 2 "compare two types"). */
+  selectable?: { selected: number[] };
 }
 
 /**
  * Three columns grouped by center: Heart (2,3,4), Head (5,6,7), Gut (8,9,1).
  * Column accent colors: Heart=yellow, Head=green, Gut=red.
  */
-export function PerspectiveGrid({ types, selfType, onSelect }: Props) {
+export function PerspectiveGrid({ types, selfType, onSelect, selectable }: Props) {
   const byNumber = new Map(types.map((t) => [t.typeNumber, t]));
 
   return (
@@ -43,6 +45,8 @@ export function PerspectiveGrid({ types, selfType, onSelect }: Props) {
                   type={type}
                   isSelf={selfType === n}
                   onClick={() => onSelect(n)}
+                  selecting={!!selectable}
+                  selected={selectable?.selected.includes(n) ?? false}
                 />
               );
             })}

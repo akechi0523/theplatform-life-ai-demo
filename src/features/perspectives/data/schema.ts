@@ -45,3 +45,43 @@ export const analyzeInputSchema = z.object({
 export const llmTypesSchema = z.object({
   types: z.array(perspectiveTypeAnalysisSchema),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flow 2 — two-type combined synthesis ("Compare Two Types"). The user picks two
+// of the nine types and gets one flowing essay woven from both, grounded in the
+// David Daniels Relationships Matrix. Five titled sections, streamed field-by-field.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const synthesisSectionsSchema = z.object({
+  /** Essay title, e.g. "The Giver and the Observer buying a home together". */
+  title: z.string(),
+  /** "In the shared scenario" — both types' core worldview applied here. */
+  inScenario: z.string(),
+  /** "Under pressure — when unaware" — both stress shifts woven together. */
+  underPressure: z.string(),
+  /** "In security — when aware" — both security shifts woven together. */
+  inSecurity: z.string(),
+  /** "The shared invitation" — closing synthesis. */
+  sharedInvitation: z.string(),
+});
+
+export type SynthesisSections = z.infer<typeof synthesisSectionsSchema>;
+
+export const synthesisResultSchema = z.object({
+  scenario: z.string(),
+  /** The two types compared, normalized to sorted [lo, hi] ([n, n] for same-type). */
+  types: z.tuple([z.number().int().min(1).max(9), z.number().int().min(1).max(9)]),
+  generatedAt: z.string(),
+  sections: synthesisSectionsSchema,
+});
+
+export type SynthesisResult = z.infer<typeof synthesisResultSchema>;
+
+/** Input accepted by the synthesis route. Same-type pairs are allowed. */
+export const synthesizeInputSchema = z.object({
+  scenario: z.string().min(5, "Please describe your scenario in a little more detail.").max(500),
+  types: z.tuple([z.number().int().min(1).max(9), z.number().int().min(1).max(9)]),
+  modelId: z.enum(MODEL_IDS).optional(),
+});
+
+export type SynthesizeInput = z.infer<typeof synthesizeInputSchema>;

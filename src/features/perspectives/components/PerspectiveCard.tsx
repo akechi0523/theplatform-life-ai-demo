@@ -1,6 +1,6 @@
 "use client";
 
-import { Star1 } from "iconsax-reactjs";
+import { Star1, TickCircle } from "iconsax-reactjs";
 import type { PerspectiveTypeAnalysis } from "../data/schema";
 import { getTriadForType } from "../data/types";
 import { cn } from "@/lib/utils";
@@ -9,21 +9,34 @@ interface Props {
   type: PerspectiveTypeAnalysis;
   isSelf: boolean;
   onClick: () => void;
+  /** True while the grid is in "compare two types" multi-select mode. */
+  selecting?: boolean;
+  /** True when this card is one of the picked two. */
+  selected?: boolean;
 }
 
-export function PerspectiveCard({ type, isSelf, onClick }: Props) {
+export function PerspectiveCard({ type, isSelf, onClick, selecting = false, selected = false }: Props) {
   const triad = getTriadForType(type.typeNumber);
 
   return (
     <button
       onClick={onClick}
+      aria-pressed={selecting ? selected : undefined}
       className={cn(
         "group animate-card-in relative w-full rounded-[var(--radius-compact)] bg-[var(--color-surface)] p-5 text-left transition duration-200",
         "hover:-translate-y-0.5",
-        isSelf && "ring-self",
+        isSelf && !selecting && "ring-self",
+        selected && "ring-self",
+        selecting && !selected && "opacity-70 hover:opacity-100",
       )}
     >
-      {isSelf && (
+      {selecting && selected && (
+        <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-[var(--color-obsidian)] px-2 py-0.5 text-[10px] font-semibold text-white">
+          <TickCircle size={11} color="#ffffff" variant="Bold" /> Selected
+        </span>
+      )}
+
+      {isSelf && !selecting && (
         <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-xl bg-[var(--color-obsidian)] px-2 py-0.5 text-[10px] font-semibold text-white">
           <Star1 size={11} color="#ffffff" variant="Bold" /> My Type
         </span>

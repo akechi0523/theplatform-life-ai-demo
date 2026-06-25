@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, DocumentDownload, Link21 } from "iconsax-reactjs";
+import { ArrowLeft, DocumentDownload, Link21, Magicpen } from "iconsax-reactjs";
 import { toast } from "sonner";
 import type { AnalysisResult } from "../data/schema";
 import type { AnalysisMetrics } from "../hooks/useAnalysisStream";
 import { buildShareUrl } from "@/lib/share";
 import { downloadAnalysisPdf } from "@/lib/pdf";
 import { DetailPanel } from "./DetailPanel";
+import { MetricsBar } from "./MetricsBar";
 import { MyTypeSelector } from "./MyTypeSelector";
 import { PerspectiveGrid } from "./PerspectiveGrid";
 
@@ -22,27 +23,12 @@ interface Props {
   streamedCount?: number;
   /** Per-run measurement, shown once the analysis completes. */
   metrics?: AnalysisMetrics | null;
-}
-
-/** Compact, human-readable summary of one run's measured cost/latency. */
-function MetricsBar({ metrics }: { metrics: AnalysisMetrics }) {
-  const parts: string[] = [];
-  if (metrics.totalMs != null) parts.push(`Streamed in ${(metrics.totalMs / 1000).toFixed(1)}s`);
-  if (metrics.timeToFirstMs != null)
-    parts.push(`first perspective in ${(metrics.timeToFirstMs / 1000).toFixed(1)}s`);
-  if (metrics.usage) parts.push(`${metrics.usage.totalTokens.toLocaleString()} tokens`);
-  if (metrics.estCostUsd != null) parts.push(`~$${metrics.estCostUsd.toFixed(4)} est.`);
-  if (metrics.cacheSavingsUsd && metrics.cacheSavingsUsd > 0)
-    parts.push(`cache saved ~$${metrics.cacheSavingsUsd.toFixed(4)}`);
-
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--color-ash)]">
-      <span className="rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 font-medium text-[var(--color-muted)]">
-        {metrics.model}
-      </span>
-      <span>{parts.join(" · ")}</span>
-    </div>
-  );
+  /**
+   * Flow 2 entry point from the results grid: when provided, a "Compare two
+   * types" affordance lets the user pick two cards and request a combined
+   * synthesis. The handler decides premium gating (run vs. open upgrade modal).
+   */
+  onSynthesize?: (types: [number, number]) => void;
 }
 
 export function ResultsView({
@@ -53,10 +39,28 @@ export function ResultsView({
   streaming = false,
   streamedCount = 0,
   metrics = null,
+  onSynthesize,
 }: Props) {
   // Track the selected type by NUMBER, not a snapshot, so the open panel always
   // reflects the latest streamed data (prose filling in after the face).
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
+  // Flow 2 "compare two" mode: when active, clicking cards toggles a selection
+  // of up to two types instead of opening the detail panel.
+  const [compareMode, setCompareMode] = useState(false);
+  const [picked, setPicked] = useState<number[]>([]);
+
+  function togglePicked(n: number) {
+    setPicked((prev) => {
+      if (prev.includes(n)) return prev.filter((x) => x !== n);
+      if (prev.length >= 2) return [prev[1], n]; // keep the most recent two
+      return [...prev, n];
+    });
+  }
+
+  function exitCompare() {
+    setCompareMode(false);
+    setPicked([]);
+  }
 
   const byNumber = new Map(result.types.map((t) => [t.typeNumber, t]));
   const selected = selectedNumber != null ? (byNumber.get(selectedNumber) ?? null) : null;
@@ -99,8 +103,35 @@ export function ResultsView({
               <span className="h-2 w-2 animate-pulse-soft rounded-full bg-[var(--color-brand,#3f3f46)]" />
               Revealing perspectives… {streamedCount}/9
             </span>
+          ) : compareMode ? (
+            <>
+              <span className="inline-flex items-center rounded-full bg-[var(--color-surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)]">
+                {picked.length < 2 ? `Pick two types — ${picked.length}/2` : "Two types selected"}
+              </span>
+              <button
+                onClick={() => picked.length === 2 && onSynthesize?.([picked[0], picked[1]])}
+                disabled={picked.length !== 2}
+                className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold disabled:opacity-45"
+              >
+                <Magicpen size={16} color="#ffffff" variant="Bold" /> Generate synthesis
+              </button>
+              <button
+                onClick={exitCompare}
+                className="btn-ghost inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </>
           ) : (
             <>
+              {onSynthesize && (
+                <button
+                  onClick={() => setCompareMode(true)}
+                  className="btn-ghost inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
+                >
+                  <Magicpen size={16} color="#3f3f46" variant="Linear" /> Compare two types
+                </button>
+              )}
               <button
                 onClick={copyLink}
                 className="btn-ghost inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium"
@@ -133,10 +164,11 @@ export function ResultsView({
       <PerspectiveGrid
         types={result.types}
         selfType={selfType}
-        onSelect={(n) => setSelectedNumber(n)}
+        onSelect={(n) => (compareMode ? togglePicked(n) : setSelectedNumber(n))}
+        selectable={compareMode ? { selected: picked } : undefined}
       />
 
-      <DetailPanel type={selected} onClose={() => setSelectedNumber(null)} />
+      <DetailPanel type={compareMode ? null : selected} onClose={() => setSelectedNumber(null)} />
     </div>
   );
 }

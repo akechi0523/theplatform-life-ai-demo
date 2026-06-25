@@ -19,70 +19,7 @@ import {
 } from "@/features/perspectives/prompt";
 import { invokeLLM, streamLLM, type TokenUsage } from "./llm";
 import { PerspectiveStreamParser } from "./jsonStream";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-
-/**
- * Dev aid: dump the exact system + user prompt sent to the LLM into a .txt file
- * under `logs/` so it can be inspected verbatim. No-op in production and never
- * throws (best-effort logging must not break an analysis).
- */
-async function logPromptToFile(scenario: string, model: string, system: string, user: string) {
-  if (process.env.NODE_ENV === "production") return;
-  try {
-    const dir = join(process.cwd(), "logs");
-    await mkdir(dir, { recursive: true });
-    // Windows filenames can't contain ":" — use a filesystem-safe timestamp.
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const body = [
-      `# LLM PROMPT DUMP`,
-      `timestamp: ${new Date().toISOString()}`,
-      `model:     ${model}`,
-      `scenario:  ${scenario}`,
-      ``,
-      `===== SYSTEM PROMPT (${system.length} chars) =====`,
-      system,
-      ``,
-      `===== USER PROMPT (${user.length} chars) =====`,
-      user,
-      ``,
-    ].join("\n");
-    await writeFile(join(dir, `prompt-${stamp}.txt`), body, "utf8");
-    console.info(`[analysis] prompt written to logs/prompt-${stamp}.txt`);
-  } catch (err) {
-    console.warn("[analysis] failed to write prompt log:", err);
-  }
-}
-
-/** Recovers a truncated JSON string by closing any open structures. */
-function repairTruncatedJson(raw: string): string {
-  let s = raw.trim();
-  // Strip markdown fences if a model wrapped the JSON.
-  s = s.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-  s = s.replace(/,\s*"[^"]*"\s*:\s*"[^"]*$/, "");
-  s = s.replace(/,\s*"[^"]*"\s*:\s*$/, "");
-  s = s.replace(/,\s*"[^"]*"\s*$/, "");
-
-  let braces = 0;
-  let brackets = 0;
-  let inString = false;
-  let escape = false;
-  for (const ch of s) {
-    if (escape) { escape = false; continue; }
-    if (ch === "\\") { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === "{") braces++;
-    else if (ch === "}") braces--;
-    else if (ch === "[") brackets++;
-    else if (ch === "]") brackets--;
-  }
-  if (inString) s += '"';
-  s = s.replace(/,\s*$/, "");
-  for (let i = 0; i < brackets; i++) s += "]";
-  for (let i = 0; i < braces; i++) s += "}";
-  return s;
-}
+import { logPromptToFile, repairTruncatedJson } from "./llmJson";
 
 /**
  * Produces a complete 9-type analysis for the scenario by calling the LLM,
@@ -95,7 +32,7 @@ export async function analyzeScenario(
   const { provider, model } = getModelOption(modelId);
 
   const userPrompt = buildUserPrompt(scenario);
-  await logPromptToFile(scenario, model, SYSTEM_PROMPT, userPrompt);
+  await logPromptToFile("analysis", scenario, model, SYSTEM_PROMPT, userPrompt);
 
   const raw = await invokeLLM({
     messages: [
@@ -205,7 +142,7 @@ export async function* analyzeScenarioStream(
   let firstAt = 0;
 
   const userPrompt = buildUserPrompt(scenario);
-  await logPromptToFile(scenario, model, SYSTEM_PROMPT, userPrompt);
+  await logPromptToFile("analysis", scenario, model, SYSTEM_PROMPT, userPrompt);
 
   for await (const chunk of streamLLM({
     messages: [

@@ -103,6 +103,7 @@ export function useAnalysisStream() {
 
           let evt:
             | { event: "perspective"; data: PerspectiveTypeAnalysis; complete: boolean }
+            | { event: "summary"; typeNumber: number; delta: string }
             | { event: "done"; result: AnalysisResult; metrics: AnalysisMetrics }
             | { event: "error"; code: string; message: string };
           try {
@@ -112,8 +113,9 @@ export function useAnalysisStream() {
           }
 
           if (evt.event === "perspective") {
-            // Upsert by typeNumber: the face renders the card, then the later
-            // complete event merges in the prose fields without losing it.
+            // Upsert by typeNumber: the shell renders the card, summary deltas
+            // type the summary in, then the complete event merges the prose.
+            // Merge so a late shell never clobbers already-streamed summary text.
             setState((s) => {
               const idx = s.types.findIndex((t) => t.typeNumber === evt.data.typeNumber);
               if (idx === -1) {
@@ -122,8 +124,21 @@ export function useAnalysisStream() {
                   types: [...s.types, evt.data].sort((a, b) => a.typeNumber - b.typeNumber),
                 };
               }
+              const existing = s.types[idx];
               const next = s.types.slice();
-              next[idx] = { ...next[idx], ...evt.data };
+              // Keep the longer summary (streamed text vs. an incoming empty shell).
+              const merged = { ...existing, ...evt.data };
+              if (!evt.data.summary && existing.summary) merged.summary = existing.summary;
+              next[idx] = merged;
+              return { ...s, types: next };
+            });
+          } else if (evt.event === "summary") {
+            // Append the decoded summary fragment to its card.
+            setState((s) => {
+              const idx = s.types.findIndex((t) => t.typeNumber === evt.typeNumber);
+              if (idx === -1) return s;
+              const next = s.types.slice();
+              next[idx] = { ...next[idx], summary: next[idx].summary + evt.delta };
               return { ...s, types: next };
             });
           } else if (evt.event === "done") {

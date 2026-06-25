@@ -5,16 +5,13 @@
 // input schema (allowlist validation), and the server (which provider/model to
 // call). It contains NO secrets — API keys are resolved server-side in
 // `src/server/services/llm.ts` from the provider's `apiKeyEnv`.
+//
+// Every model is selectable by every user — there is no per-model tier lock.
+// (Cost is still bounded by the per-run token gate; the synthesis feature has
+// its own premium gate. Neither is about model choice.)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LlmProvider = "openai" | "deepseek" | "xai";
-
-/**
- * Which subscription tier may run a model. Free users get the fast/low-cost
- * models (cost is capped); the strongest models are a premium upgrade. The
- * server enforces this in the analyze route; the picker just reflects it.
- */
-export type ModelTier = "free" | "premium";
+export type LlmProvider = "openai" | "deepseek" | "xai" | "anthropic" | "gemini";
 
 export interface ModelOption {
   /** Stable id used by the picker + schema (NOT necessarily the API model id). */
@@ -24,52 +21,47 @@ export interface ModelOption {
   /** One-line helper text shown under/next to the label. */
   description: string;
   provider: LlmProvider;
-  /** Exact model id sent to the provider's /chat/completions endpoint. */
+  /** Exact model id sent to the provider's API. */
   model: string;
-  /** Minimum tier required to run this model. */
-  tier: ModelTier;
 }
 
+// The five models under comparison. Grok 4.3 stays as the current default; the
+// other four are the models agreed with the client for the comparison.
 export const MODEL_OPTIONS = [
   {
-    id: "gpt-4o-mini",
-    label: "GPT-4o mini",
-    description: "OpenAI · fastest, lightweight",
-    provider: "openai",
-    model: "gpt-4o-mini",
-    tier: "free",
+    id: "claude-sonnet-4-6",
+    label: "Claude Sonnet 4.6",
+    description: "Anthropic · most nuanced & emotionally honest",
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
   },
   {
-    id: "deepseek-chat",
-    label: "DeepSeek V3",
-    description: "DeepSeek · strong reasoning, low cost",
+    id: "gpt-4.1",
+    label: "GPT-4.1",
+    description: "OpenAI · accurate, slightly clinical tone",
+    provider: "openai",
+    model: "gpt-4.1",
+  },
+  {
+    id: "gemini-3.5-flash",
+    label: "Gemini 3.5 Flash",
+    description: "Google · fast, good value",
+    provider: "gemini",
+    model: "gemini-3.5-flash",
+  },
+  {
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
+    description: "DeepSeek · capable & ultra-cheap",
     provider: "deepseek",
     model: "deepseek-chat",
-    tier: "free",
-  },
-  {
-    id: "gpt-4o",
-    label: "GPT-4o",
-    description: "OpenAI · balanced & reliable",
-    provider: "openai",
-    model: "gpt-4o",
-    tier: "premium",
   },
   {
     id: "grok-4.3",
     label: "Grok 4.3",
-    description: "xAI · fast & creative",
+    description: "xAI · fast & creative (current default)",
     provider: "xai",
     model: "grok-4.3",
-    tier: "premium",
-  },
-  {
-    id: "grok-4-reasoning",
-    label: "Grok 4.20 (reasoning)",
-    description: "xAI · deeper, slower reasoning",
-    provider: "xai",
-    model: "grok-4.20-0309-reasoning",
-    tier: "premium",
   },
 ] as const satisfies readonly ModelOption[];
 
@@ -78,13 +70,8 @@ export type ModelId = (typeof MODEL_OPTIONS)[number]["id"];
 /** Non-empty tuple of ids for `z.enum(...)`. */
 export const MODEL_IDS = MODEL_OPTIONS.map((m) => m.id) as [ModelId, ...ModelId[]];
 
-// NOTE: defaulted to a Grok model because (as of setup) only the xAI key is valid.
-// Switch back to "gpt-4o" once a valid OPENAI_API_KEY is in place.
+// Current default — what we run today unless the user picks another model.
 export const DEFAULT_MODEL_ID: ModelId = "grok-4.3";
-
-/** The model free users run (fast + low cost) and the one premium unlocks by default. */
-export const FREE_DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini";
-export const PREMIUM_DEFAULT_MODEL_ID: ModelId = "gpt-4o";
 
 /** Resolves a picker id to its option, falling back to the default for unknown/empty ids. */
 export function getModelOption(id: string | undefined | null): ModelOption {
@@ -92,28 +79,4 @@ export function getModelOption(id: string | undefined | null): ModelOption {
     MODEL_OPTIONS.find((m) => m.id === id) ??
     MODEL_OPTIONS.find((m) => m.id === DEFAULT_MODEL_ID)!
   );
-}
-
-/** Whether a tier is allowed to run the given model id. */
-export function isModelAllowedForTier(id: string | undefined | null, isPremium: boolean): boolean {
-  const opt = MODEL_OPTIONS.find((m) => m.id === id);
-  if (!opt) return false;
-  return isPremium || opt.tier === "free";
-}
-
-/**
- * Maps a (requested model, tier) pair to the model that should actually run.
- * Premium honors the request; free is clamped to a free-tier model so a free
- * user can never spend us premium-model money. Server-side source of truth.
- */
-export function resolveModelForTier(
-  requestedId: string | undefined | null,
-  isPremium: boolean,
-): ModelOption {
-  if (isPremium) {
-    return getModelOption(requestedId ?? PREMIUM_DEFAULT_MODEL_ID);
-  }
-  const requested = MODEL_OPTIONS.find((m) => m.id === requestedId);
-  if (requested && requested.tier === "free") return requested;
-  return getModelOption(FREE_DEFAULT_MODEL_ID);
 }

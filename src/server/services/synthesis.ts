@@ -16,13 +16,13 @@ import { logPromptToFile, repairTruncatedJson } from "./llmJson";
 import { SynthesisStreamParser } from "./synthesisStream";
 
 /**
- * Event surface of the streaming synthesis. Each of the five sections is emitted
- * the moment its string value closes (`kind: "section"`), then a final `done`
- * event carries the canonical, validated result + token usage. The client merges
- * sections by field name.
+ * Event surface of the streaming synthesis. Each section's text streams in as
+ * token-level fragments (`kind: "section"` carrying a `delta` the client appends
+ * to that field), then a final `done` event carries the canonical, validated
+ * result + token usage.
  */
 export type SynthesisStreamEvent =
-  | { kind: "section"; field: keyof SynthesisSections; value: string }
+  | { kind: "section"; field: keyof SynthesisSections; delta: string }
   | { kind: "done"; result: SynthesisResult; usage?: TokenUsage };
 
 /** Order the two types low→high so the lookup, echo, and prompt are stable. */
@@ -74,14 +74,14 @@ export async function* synthesizePairStream(
     if (!chunk.delta) continue;
     if (trace) process.stdout.write(chunk.delta);
 
-    for (const { field, value } of parser.push(chunk.delta)) {
-      if (!firstAt) firstAt = Date.now();
-      if (trace) {
-        console.info(
-          `\n[synthesis] ▸ ${field} @ +${((firstAt - startedAt) / 1000).toFixed(2)}s — "${value.slice(0, 60)}…"`,
-        );
+    for (const { field, delta } of parser.push(chunk.delta)) {
+      if (!firstAt) {
+        firstAt = Date.now();
+        if (trace) {
+          console.info(`\n[synthesis] ▸ first text (${field}) @ +${((firstAt - startedAt) / 1000).toFixed(2)}s`);
+        }
       }
-      yield { kind: "section", field, value };
+      yield { kind: "section", field, delta };
     }
   }
 

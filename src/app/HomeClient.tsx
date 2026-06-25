@@ -196,7 +196,7 @@ export function HomeClient() {
           <div className="space-y-10">
             <FlowToggle flow={flow} onChange={setFlow} disabled={isStreaming} />
             {flow === "perspectives" ? (
-              <ScenarioInput onAnalyze={handleAnalyze} disabled={isStreaming} isPremium={isPremium} />
+              <ScenarioInput onAnalyze={handleAnalyze} disabled={isStreaming} />
             ) : (
               <SynthesisInput
                 onSynthesize={handleSynthesize}

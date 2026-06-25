@@ -1,24 +1,17 @@
-import { MODEL_OPTIONS, resolveModelForTier, type ModelOption } from "@/features/perspectives/data/models";
+import { MODEL_OPTIONS, getModelOption, type ModelOption } from "@/features/perspectives/data/models";
 import { configuredProviders, isProviderConfigured } from "./llm";
 
 /**
- * Resolves the model that should actually run for a (requested id, tier) pair,
- * with a graceful fallback: if the tier-appropriate model's provider has no API
- * key configured, pick any configured model (preferring one allowed for this
- * tier) instead of throwing. Server-side source of truth shared by both the
- * Flow 1 (analyze) and Flow 2 (synthesis) routes.
+ * Resolves the model that should actually run for a requested picker id. Every
+ * model is selectable by every user (no tier lock), so we honor the request and
+ * only override when the requested model's provider has no API key configured —
+ * in which case we fall back to any configured model rather than throwing.
+ * Server-side source of truth shared by the analyze and synthesis routes.
  */
-export function resolveEffectiveModel(
-  modelId: string | undefined,
-  isPremium: boolean,
-): ModelOption {
-  let effective = resolveModelForTier(modelId, isPremium);
-  if (!isProviderConfigured(effective.provider)) {
-    const configured = configuredProviders();
-    const alt =
-      MODEL_OPTIONS.find((m) => configured.includes(m.provider) && (isPremium || m.tier === "free")) ??
-      MODEL_OPTIONS.find((m) => configured.includes(m.provider));
-    if (alt) effective = alt;
-  }
-  return effective;
+export function resolveEffectiveModel(modelId: string | undefined): ModelOption {
+  const requested = getModelOption(modelId);
+  if (isProviderConfigured(requested.provider)) return requested;
+
+  const configured = configuredProviders();
+  return MODEL_OPTIONS.find((m) => configured.includes(m.provider)) ?? requested;
 }

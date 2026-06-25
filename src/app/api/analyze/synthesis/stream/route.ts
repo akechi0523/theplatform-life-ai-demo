@@ -9,9 +9,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 // Needs Node (Postgres + Supabase server client). Streams NDJSON to the client.
 export const runtime = "nodejs";
 
-/** One NDJSON line per event: section | done | error. */
+/** One NDJSON line per event: section (token-level delta) | done | error. */
 type StreamEvent =
-  | { event: "section"; field: string; value: string }
+  | { event: "section"; field: string; delta: string }
   | { event: "done"; result: unknown; metrics: unknown }
   | { event: "error"; code: "SYNTHESIS_FAILED"; message: string };
 
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const effective = resolveEffectiveModel(modelId, isPremium);
+  const effective = resolveEffectiveModel(modelId);
   const { provider, model } = effective;
 
   // ── Token gate (atomic consume; refunded below if the synthesis fails) ───────
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         for await (const ev of synthesizePairStream(scenario, lo, hi, effective.id, req.signal)) {
           if (ev.kind === "section") {
             if (!firstAt) firstAt = Date.now();
-            write({ event: "section", field: ev.field, value: ev.value });
+            write({ event: "section", field: ev.field, delta: ev.delta });
             continue;
           }
 

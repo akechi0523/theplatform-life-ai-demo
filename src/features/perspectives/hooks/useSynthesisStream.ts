@@ -86,7 +86,7 @@ export function useSynthesisStream() {
           if (!line) continue;
 
           let evt:
-            | { event: "section"; field: SectionField; value: string }
+            | { event: "section"; field: SectionField; delta: string }
             | { event: "done"; result: SynthesisResult; metrics: AnalysisMetrics }
             | { event: "error"; code: string; message: string };
           try {
@@ -96,7 +96,11 @@ export function useSynthesisStream() {
           }
 
           if (evt.event === "section") {
-            setState((s) => ({ ...s, sections: { ...s.sections, [evt.field]: evt.value } }));
+            // Append the decoded fragment so the section types out live.
+            setState((s) => ({
+              ...s,
+              sections: { ...s.sections, [evt.field]: (s.sections[evt.field] ?? "") + evt.delta },
+            }));
           } else if (evt.event === "done") {
             setState((s) => ({
               ...s,

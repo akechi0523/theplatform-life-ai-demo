@@ -4,12 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Magicpen } from "iconsax-reactjs";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import {
-  DEFAULT_MODEL_ID,
-  MODEL_OPTIONS,
-  type ModelId,
-  type ModelOption,
-} from "../data/models";
+import { DEFAULT_MODEL_ID, MODEL_OPTIONS, type ModelId } from "../data/models";
 import { PERSPECTIVE_TYPES, TRIADS, getTriadForType, taglineFor } from "../data/types";
 
 const EXAMPLES = [
@@ -52,7 +47,6 @@ export function SynthesisInput({ onSynthesize, disabled, isPremium = false, onLo
   }, [availableModels, modelId]);
 
   const noModels = providersQuery.isSuccess && availableModels.length === 0;
-  const isLocked = (m: ModelOption) => !isPremium && m.tier === "premium";
 
   function togglePicked(n: number) {
     setPicked((prev) => {
@@ -164,14 +158,11 @@ export function SynthesisInput({ onSynthesize, disabled, isPremium = false, onLo
                     aria-label="Synthesis model"
                     className="rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-2 py-1 text-xs text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)] disabled:opacity-50"
                   >
-                    {availableModels.map((m) => {
-                      const locked = isLocked(m);
-                      return (
-                        <option key={m.id} value={m.id} disabled={locked} title={m.description}>
-                          {locked ? `🔒 ${m.label} (Premium)` : m.label}
-                        </option>
-                      );
-                    })}
+                    {availableModels.map((m) => (
+                      <option key={m.id} value={m.id} title={m.description}>
+                        {m.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               )}

@@ -1,9 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// OpenAI-compatible LLM adapter.
-// OpenAI, DeepSeek, and xAI all expose the same /chat/completions API, so a
-// single client switches between them via env (LLM_PROVIDER / LLM_MODEL).
+// LLM adapter.
+// OpenAI, DeepSeek, xAI, and Gemini all expose the same /chat/completions API
+// (Gemini via Google's OpenAI-compatible endpoint), so a single client switches
+// between them via env (LLM_PROVIDER / LLM_MODEL). Anthropic has no compatible
+// endpoint, so Claude is handled by a dedicated branch using the official SDK —
+// it returns the same normalized shapes, so callers don't care which path ran.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import Anthropic from "@anthropic-ai/sdk";
 import type { LlmProvider } from "@/features/perspectives/data/models";
 
 export type { LlmProvider };
@@ -52,7 +56,30 @@ const PROVIDERS: Record<LlmProvider, ProviderConfig> = {
     // param. Flip to true once verified against the live xAI endpoint.
     supportsStreamUsage: true,
   },
+  gemini: {
+    // Google's OpenAI-compatible surface — same /chat/completions shape.
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    apiKeyEnv: "GEMINI_API_KEY",
+    defaultModel: "gemini-3.5-flash",
+    supportsJsonSchema: false,
+    supportsStreamUsage: true,
+  },
+  anthropic: {
+    // Anthropic has no /chat/completions endpoint — Claude is served by the
+    // dedicated SDK branch below, so baseUrl is unused here. This entry exists so
+    // isProviderConfigured / configuredProviders / defaults work uniformly.
+    baseUrl: "https://api.anthropic.com",
+    apiKeyEnv: "ANTHROPIC_API_KEY",
+    defaultModel: "claude-sonnet-4-6",
+    supportsJsonSchema: false,
+    supportsStreamUsage: false,
+  },
 };
+
+/** The active provider: explicit override wins, else env default, else openai. */
+function resolveProviderName(override?: LlmProvider): LlmProvider {
+  return override ?? ((process.env.LLM_PROVIDER ?? "openai") as LlmProvider);
+}
 
 /**
  * Resolves which provider/model/key to use. An explicit `override` (from the
@@ -62,10 +89,10 @@ function resolveProvider(override?: {
   provider?: LlmProvider;
   model?: string;
 }): { config: ProviderConfig; model: string; apiKey: string } {
-  const provider = override?.provider ?? ((process.env.LLM_PROVIDER ?? "openai") as LlmProvider);
+  const provider = resolveProviderName(override?.provider);
   const config = PROVIDERS[provider];
   if (!config) {
-    throw new Error(`Unknown LLM provider "${provider}". Use openai | deepseek | xai.`);
+    throw new Error(`Unknown LLM provider "${provider}". Use openai | deepseek | xai | anthropic | gemini.`);
   }
   const apiKey = process.env[config.apiKeyEnv];
   if (!apiKey) {
@@ -150,6 +177,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Calls the configured provider's chat-completions endpoint with retries. */
 export async function invokeLLM(opts: InvokeOptions): Promise<string> {
+  if (resolveProviderName(opts.provider) === "anthropic") return invokeAnthropic(opts);
+
   const { config, model, apiKey } = resolveProvider({
     provider: opts.provider,
     model: opts.model,
@@ -237,6 +266,11 @@ interface StreamChunkJson {
  * OpenAI/DeepSeek to append a usage frame so we can log cost.
  */
 export async function* streamLLM(opts: InvokeOptions): AsyncGenerator<LlmStreamChunk> {
+  if (resolveProviderName(opts.provider) === "anthropic") {
+    yield* streamAnthropic(opts);
+    return;
+  }
+
   const { config, model, apiKey } = resolveProvider({ provider: opts.provider, model: opts.model });
 
   const body: Record<string, unknown> = {
@@ -331,4 +365,123 @@ export async function* streamLLM(opts: InvokeOptions): AsyncGenerator<LlmStreamC
   } finally {
     reader.releaseLock();
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Anthropic (Claude) adapter — uses the official SDK, not /chat/completions.
+// Maps to/from the same ChatMessage / LlmStreamChunk / TokenUsage shapes the
+// OpenAI-compatible path uses, so analysis/synthesis callers are unchanged.
+// JSON output relies on the prompt + repair pass (like deepseek/xai), and
+// thinking is disabled so the stream is pure JSON text the parser can read.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Splits our flat messages into Anthropic's top-level `system` + user/assistant turns. */
+function toAnthropicMessages(messages: ChatMessage[]): {
+  system: string;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+} {
+  const system = messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .join("\n\n");
+  const turns = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+  return { system, messages: turns };
+}
+
+/**
+ * Wraps the (large, static) system prompt as a cache-marked block so Anthropic
+ * serves it from its prefix cache on repeat calls — the input portion then bills
+ * at ~10% and prefill is faster (lower time-to-first-token). The user message
+ * (the scenario) stays uncached after the breakpoint. Returns undefined for an
+ * empty system so we don't send an invalid empty text block.
+ */
+function anthropicSystem(system: string): Anthropic.TextBlockParam[] | undefined {
+  if (!system) return undefined;
+  return [{ type: "text", text: system, cache_control: { type: "ephemeral" } }];
+}
+
+interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+}
+
+function normalizeAnthropicUsage(u: AnthropicUsage | undefined): TokenUsage | undefined {
+  if (!u) return undefined;
+  // Anthropic reports `input_tokens` as the UNCACHED remainder only; cached and
+  // freshly-cached tokens are separate fields. Sum them so `promptTokens` is the
+  // full prompt size (matching OpenAI's semantics, where cached ⊆ prompt_tokens),
+  // and report the cache-READ portion as `cachedPromptTokens` so cost/savings
+  // math in pricing.ts works the same across providers.
+  const uncached = u.input_tokens ?? 0;
+  const cacheRead = u.cache_read_input_tokens ?? 0;
+  const cacheCreation = u.cache_creation_input_tokens ?? 0;
+  const promptTokens = uncached + cacheRead + cacheCreation;
+  const completionTokens = u.output_tokens ?? 0;
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens,
+    cachedPromptTokens: cacheRead,
+  };
+}
+
+async function invokeAnthropic(opts: InvokeOptions): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set for provider "anthropic".');
+  const client = new Anthropic({ apiKey });
+  const model = opts.model?.trim() || PROVIDERS.anthropic.defaultModel;
+  const { system, messages } = toAnthropicMessages(opts.messages);
+
+  const msg = await client.messages.create(
+    {
+      model,
+      max_tokens: opts.maxTokens ?? 6000,
+      temperature: opts.temperature ?? 0.7,
+      thinking: { type: "disabled" },
+      system: anthropicSystem(system),
+      messages,
+    },
+    { signal: opts.signal },
+  );
+
+  const text = msg.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+  if (!text) throw new Error("Claude returned an empty response.");
+  return text;
+}
+
+async function* streamAnthropic(opts: InvokeOptions): AsyncGenerator<LlmStreamChunk> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set for provider "anthropic".');
+  const client = new Anthropic({ apiKey });
+  const model = opts.model?.trim() || PROVIDERS.anthropic.defaultModel;
+  const { system, messages } = toAnthropicMessages(opts.messages);
+
+  const stream = client.messages.stream(
+    {
+      model,
+      max_tokens: opts.maxTokens ?? 6000,
+      temperature: opts.temperature ?? 0.7,
+      thinking: { type: "disabled" },
+      system: anthropicSystem(system),
+      messages,
+    },
+    { signal: opts.signal },
+  );
+
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      yield { delta: event.delta.text };
+    }
+  }
+
+  const final = await stream.finalMessage();
+  const usage = normalizeAnthropicUsage(final.usage);
+  if (usage) yield { usage };
 }

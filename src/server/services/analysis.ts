@@ -90,26 +90,23 @@ function orderTypes(types: PerspectiveTypeAnalysis[]): PerspectiveTypeAnalysis[]
  */
 export type AnalysisStreamEvent =
   | { kind: "perspective"; data: PerspectiveTypeAnalysis; complete: boolean }
+  | { kind: "summary"; typeNumber: number; delta: string }
   | { kind: "done"; result: AnalysisResult; usage?: TokenUsage };
 
 /**
- * Builds a renderable card from a face slice (typeNumber + summary). The fields
- * we already know locally (name, tagline, shift paths) are filled from metadata;
- * the heavier prose fields stay empty until the `complete` event replaces them.
+ * Builds an empty card "shell" for a type the instant its typeNumber is known —
+ * the name, tagline and shift paths come from local metadata, so the card can
+ * render immediately while its `summary` streams in (kind: "summary" deltas) and
+ * the prose fields fill on the later `complete` event.
  */
-function faceToPerspective(raw: unknown): PerspectiveTypeAnalysis | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const f = raw as Record<string, unknown>;
-  const num = typeof f.typeNumber === "number" ? f.typeNumber : Number(f.typeNumber);
-  if (!Number.isInteger(num) || !PERSPECTIVE_TYPES[num]) return null;
-  if (typeof f.summary !== "string" || f.summary.length === 0) return null;
-
+function shellPerspective(num: number): PerspectiveTypeAnalysis | null {
   const meta = PERSPECTIVE_TYPES[num];
+  if (!meta) return null;
   return {
     typeNumber: num,
-    typeName: typeof f.typeName === "string" && f.typeName ? f.typeName : meta.name,
-    tagline: typeof f.tagline === "string" && f.tagline ? f.tagline : taglineFor(num),
-    summary: f.summary,
+    typeName: meta.name,
+    tagline: taglineFor(num),
+    summary: "",
     scenarioOutlook: "",
     stressResponse: "",
     stressPath: stressPathLabel(num),
@@ -165,27 +162,25 @@ export async function* analyzeScenarioStream(
     // assembles itself in the terminal exactly as the model emits it.
     if (trace) process.stdout.write(chunk.delta);
 
-    const { faces, completed } = parser.push(chunk.delta);
+    const { started, summaryDeltas, completed } = parser.push(chunk.delta);
 
-    // Faces first: render the card the instant its summary lands.
-    for (const rawFace of faces) {
-      let candidate: unknown;
-      try {
-        candidate = JSON.parse(rawFace);
-      } catch {
-        continue;
-      }
-      const face = faceToPerspective(candidate);
-      if (!face || facesSeen.has(face.typeNumber)) continue;
-      facesSeen.add(face.typeNumber);
+    // Shells first: render the card skeleton the instant typeNumber is known —
+    // before the summary even finishes (~1s sooner than waiting for the field).
+    for (const num of started) {
+      if (facesSeen.has(num)) continue;
+      const shell = shellPerspective(num);
+      if (!shell) continue;
+      facesSeen.add(num);
       if (!firstAt) firstAt = Date.now();
       if (trace) {
-        const t0 = firstAt - startedAt;
-        console.info(
-          `\n[analysis] ▸ FACE  type ${face.typeNumber} @ +${(t0 / 1000).toFixed(2)}s — "${face.summary.slice(0, 60)}…"`,
-        );
+        console.info(`\n[analysis] ▸ SHELL type ${num} @ +${((firstAt - startedAt) / 1000).toFixed(2)}s`);
       }
-      yield { kind: "perspective", data: face, complete: false };
+      yield { kind: "perspective", data: shell, complete: false };
+    }
+
+    // Summary text streams in as it is decoded, so the card visibly types out.
+    for (const d of summaryDeltas) {
+      yield { kind: "summary", typeNumber: d.typeNumber, delta: d.text };
     }
 
     // Then the fully-formed objects with their prose fields.

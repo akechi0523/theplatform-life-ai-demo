@@ -13,9 +13,12 @@ import {
 //
 // Caching note: EVERYTHING static (rules, field spec, the full type spec, the
 // output order) lives in SYSTEM_PROMPT, which is byte-for-byte identical on
-// every request. Only the user's scenario varies (buildUserPrompt). Providers
-// that auto-cache prompt prefixes (OpenAI, DeepSeek) then serve the large static
-// block from cache, cutting input-token cost without changing output quality.
+// every request. Only the user's scenario varies (buildUserPrompt). OpenAI,
+// DeepSeek, Gemini and xAI auto-cache the prompt prefix; for Anthropic we mark
+// this block with cache_control in the adapter (see llm.ts → anthropicSystem).
+// Either way the large static block is served from cache on repeat calls within
+// the TTL — cheaper input tokens and faster prefill (lower first-token latency),
+// with no change to output quality.
 //
 // Reveal order: the spec and the output instruction are both ordered by
 // GRID_REVEAL_ORDER (the grid's left-to-right, row-by-row reading order:

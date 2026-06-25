@@ -3,15 +3,16 @@ import { analyzeInputSchema } from "@/features/perspectives/data/schema";
 import { analyzeScenarioStream } from "@/server/services/analysis";
 import { resolveEffectiveModel } from "@/server/services/modelTier";
 import { estimateCost } from "@/server/services/pricing";
-import { consumeToken, getProfile, recordAnalysis, refundToken } from "@/server/services/profile";
+import { consumeToken, recordAnalysis, refundToken } from "@/server/services/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Needs Node (Postgres + Supabase server client). Streams NDJSON to the client.
 export const runtime = "nodejs";
 
-/** One NDJSON line per event: perspective | done | error. */
+/** One NDJSON line per event: perspective | summary | done | error. */
 type StreamEvent =
   | { event: "perspective"; data: unknown; complete: boolean }
+  | { event: "summary"; typeNumber: number; delta: string }
   | { event: "done"; result: unknown; metrics: unknown }
   | { event: "error"; code: "ANALYSIS_FAILED"; message: string };
 
@@ -35,11 +36,9 @@ export async function POST(req: Request) {
   }
   const { scenario, modelId } = parsed.data;
 
-  // ── Tier policy: free users are clamped to a fast/low-cost model; premium
-  // unlocks the strongest one. Enforced here so the client can't bypass it. ────
-  const profile = await getProfile(user.id);
-  const isPremium = profile?.subscriptionStatus === "premium";
-  const effective = resolveEffectiveModel(modelId, isPremium);
+  // ── Model selection: every model is available to every user (no tier lock).
+  // We only fall back if the requested provider has no key configured. ─────────
+  const effective = resolveEffectiveModel(modelId);
   const { provider, model } = effective;
 
   // ── Token gate (atomic consume; refunded below if the analysis fails) ────────
@@ -63,9 +62,13 @@ export async function POST(req: Request) {
       try {
         for await (const ev of analyzeScenarioStream(scenario, effective.id, req.signal)) {
           if (ev.kind === "perspective") {
-            // First face = the user's first visible content; that's the metric.
+            // First shell = the user's first visible content; that's the metric.
             if (!firstAt) firstAt = Date.now();
             write({ event: "perspective", data: ev.data, complete: ev.complete });
+            continue;
+          }
+          if (ev.kind === "summary") {
+            write({ event: "summary", typeNumber: ev.typeNumber, delta: ev.delta });
             continue;
           }
 

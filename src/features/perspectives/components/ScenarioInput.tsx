@@ -3,13 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Magicpen } from "iconsax-reactjs";
 import { trpc } from "@/lib/trpc/client";
-import {
-  DEFAULT_MODEL_ID,
-  FREE_DEFAULT_MODEL_ID,
-  MODEL_OPTIONS,
-  type ModelId,
-  type ModelOption,
-} from "../data/models";
+import { DEFAULT_MODEL_ID, MODEL_OPTIONS, type ModelId } from "../data/models";
 
 const EXAMPLES = [
   "Buying a house for the first time with a fiancé",
@@ -24,16 +18,11 @@ interface Props {
   onAnalyze: (scenario: string, modelId: ModelId) => void;
   disabled?: boolean;
   initialValue?: string;
-  /** Premium users can pick any model; free users are limited to free-tier ones. */
-  isPremium?: boolean;
 }
 
-export function ScenarioInput({ onAnalyze, disabled, initialValue = "", isPremium = false }: Props) {
+export function ScenarioInput({ onAnalyze, disabled, initialValue = "" }: Props) {
   const [value, setValue] = useState(initialValue);
   const [modelId, setModelId] = useState<ModelId>(DEFAULT_MODEL_ID);
-
-  // A model is locked when a free user looks at a premium-only model.
-  const isLocked = (m: ModelOption) => !isPremium && m.tier === "premium";
 
   // Only offer models whose provider has an API key configured server-side.
   // While the query is loading we optimistically show all, then reconcile.
@@ -46,19 +35,14 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "", isPremiu
     return MODEL_OPTIONS.filter((m) => providers.includes(m.provider));
   }, [providersQuery.data]);
 
-  // Snap to a selectable model if the current one is unavailable or tier-locked.
+  // Snap to a selectable model if the current one isn't available.
   useEffect(() => {
     if (availableModels.length === 0) return;
-    const current = availableModels.find((m) => m.id === modelId);
-    if (current && !isLocked(current)) return;
-    const preferredId = isPremium ? DEFAULT_MODEL_ID : FREE_DEFAULT_MODEL_ID;
-    const next =
-      availableModels.find((m) => m.id === preferredId && !isLocked(m)) ??
-      availableModels.find((m) => !isLocked(m)) ??
-      availableModels[0];
+    if (availableModels.some((m) => m.id === modelId)) return;
+    const next = availableModels.find((m) => m.id === DEFAULT_MODEL_ID) ?? availableModels[0];
     setModelId(next.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableModels, modelId, isPremium]);
+  }, [availableModels, modelId]);
 
   const noModels = providersQuery.isSuccess && availableModels.length === 0;
 
@@ -113,14 +97,11 @@ export function ScenarioInput({ onAnalyze, disabled, initialValue = "", isPremiu
                     aria-label="Analysis model"
                     className="rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-2 py-1 text-xs text-[var(--color-ink)] outline-none transition focus:border-[var(--color-brand)] disabled:opacity-50"
                   >
-                    {availableModels.map((m) => {
-                      const locked = isLocked(m);
-                      return (
-                        <option key={m.id} value={m.id} disabled={locked} title={m.description}>
-                          {locked ? `🔒 ${m.label} (Premium)` : m.label}
-                        </option>
-                      );
-                    })}
+                    {availableModels.map((m) => (
+                      <option key={m.id} value={m.id} title={m.description}>
+                        {m.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               )}

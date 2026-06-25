@@ -41,3 +41,6 @@ pnpm-debug.log*
 
 # local LLM prompt dumps (dev debugging)
 /logs
+
+# generated benchmark output (regenerate via scripts/benchmarkModels.ts)
+scripts/benchmark-results*

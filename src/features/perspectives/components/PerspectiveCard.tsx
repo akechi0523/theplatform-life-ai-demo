@@ -54,9 +54,16 @@ export function PerspectiveCard({ type, isSelf, onClick, selecting = false, sele
         <h3 className="font-serif text-base font-semibold leading-tight">{type.typeName}</h3>
       </div>
 
-      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[var(--color-muted)]">
-        {type.summary}
-      </p>
+      {type.summary ? (
+        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[var(--color-muted)]">
+          {type.summary}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2" aria-label="Composing…">
+          <div className="h-3 w-full animate-pulse-soft rounded bg-[var(--color-line)]" />
+          <div className="h-3 w-4/5 animate-pulse-soft rounded bg-[var(--color-line)]" />
+        </div>
+      )}
 
       <span className="mt-3 inline-block text-xs font-semibold text-[var(--color-ink)] opacity-0 transition group-hover:opacity-100">
         View perspective →

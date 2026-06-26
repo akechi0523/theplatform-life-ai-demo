@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\('anthropic', require\\('@anthropic-ai/sdk/package.json'\\).version\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(node --env-file=.env.local --import tsx scripts/benchmarkModels.ts)",
+      "Bash(tee scripts/benchmark-run.log)",
+      "Bash(npm run *)",
+      "Bash(node --env-file=.env.local --import tsx scripts/benchmarkModels.ts gemini-3.5-flash)",
+      "Bash(node --env-file=.env.local -e ' *)",
+      "Bash(node -e ' *)",
+      "Bash(node --env-file=.env.local --import tsx scripts/benchmarkModels.ts gemini-3-pro)",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(echo \"=== scan exit: $? \\(1 = clean/no matches\\) ===\")",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "PowerShell($tools = @\\('pandoc','wkhtmltopdf','npx'\\); foreach \\($t in $tools\\) { $c = Get-Command $t -ErrorAction SilentlyContinue; if \\($c\\) { \"$t -> $\\($c.Source\\)\" } else { \"$t -> NOT FOUND\" } }; \"--- chrome/edge ---\"; @\\(\"$env:ProgramFiles\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\",\"${env:ProgramFiles\\(x86\\)}\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\"\\) | ForEach-Object { if \\(Test-Path $_\\) { \"FOUND: $_\" } else { \"missing: $_\" } })",
+      "PowerShell($paths = @\\(\"$env:ProgramFiles\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\", \"$env:ProgramFiles\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { \"FOUND: $p\" } })",
+      "PowerShell(Get-ChildItem -File | Where-Object { $_.Extension -in '.md','.pdf' -or $_.Name -match 'PREP|COMPARISON|INVOICE' } | Select-Object Name, Length | Format-Table -AutoSize)"
+    ]
+  }
+}

@@ -1,18 +1,10 @@
 # Model Comparison — ThePlatform.life AI (360° of Perspectives)
 
-**Four-model evaluation agreed in the previous meeting:** Claude Sonnet 4.6 · GPT-4.1 · Gemini 3.5 Flash · DeepSeek V4 Flash — with **Grok 4.3** (today's default) as the reference point.
-
-**Prepared:** 2026-06-25 · **Data:** live measured, this morning · **Workload:** one full analysis = 9 perspective profiles (summary + scenario outlook + stress & security shifts) from a short scenario.
-
----
-
-## Bottom line
 
 - **Best output quality → Claude Sonnet 4.6.** Noticeably more nuanced and emotionally honest — and it *shows* in the numbers: it writes ~80% more text per analysis than any other model. Cost ~6¢/analysis; it's also the slowest to *finish* (~76s) though the first card still appears in ~5s.
 - **Best quality-for-speed → GPT-4.1.** Strong, accurate output at **~1.7¢/analysis** and a **~19s** full run — the best all-round paid-tier pick if Claude's latency is a concern.
 - **Best cost → DeepSeek V4 Flash.** Solid, complete output for **under a tenth of a cent** per analysis. The obvious free-tier engine.
 - **Keep Grok 4.3 as the default.** ~0.65¢/analysis, ~20s, dependable — a sensible middle ground.
-- **Gemini 3.5 Flash** is fully integrated and authenticated, but Google returned transient *"high demand" 503s* across the whole benchmark window today (even a 1-token probe), so its numbers below are **estimated from list price**, to be replaced with measured figures once Google's capacity frees up (one command, see Methodology).
 
 > **Headline:** every model produced all 9 cards correctly. Even the most expensive option is ~6¢ per analysis, and the cheapest is a rounding error.
 
@@ -33,7 +25,6 @@
 - **Token consumption is similar across models on the *input* side** (~1,080–1,180 — the same prompt) but **diverges sharply on output.** Claude generates ~3,800 output tokens of prose vs ~2,000–2,200 for the others — that single fact drives both its higher quality *and* its higher cost and latency.
 - **Time-to-first-card (what the user actually feels) is ~4–7s for everyone.** Claude is among the *fastest* to show the first card (4.9s) even though it's slowest to finish — because our UI streams cards as they're ready, perceived speed stays good.
 - **Total latency** favors GPT-4.1 (~19s) and Grok (~20s); DeepSeek ~24s; Claude ~76s (it's writing far more).
-- **Cost spread is ~85×** between Claude (~$0.060) and DeepSeek (~$0.0007).
 
 ---
 
@@ -58,6 +49,5 @@ Prompt caching (the static system prompt repeats every call) trims the input por
 | **GPT-4.1** | ~90% of the quality at **¼ the latency and ¼ the cost** — the pragmatic paid default. |
 | **DeepSeek V4 Flash** | Complete, decent output for **<$0.001**. Caps free-tier spend to near zero. |
 | **Grok 4.3** | Keep — balanced cost/speed while we finalize the premium/free split. |
-| **Gemini 3.5 Flash** | Integrated & ready; capture measured numbers once Google capacity frees, then slot by price (~2¢, between GPT-4.1 and Grok). |
 
 ---
